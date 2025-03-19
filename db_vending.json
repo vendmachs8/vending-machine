@@ -1,0 +1,95 @@
+{
+  "users": {
+    "admin1": {
+      "name": "Admin User 1",
+      "status": "admin",
+      "email": "admin1@example.com",
+      "passwordHash": "hashed_password_1"
+    },
+    "admin2": {
+      "name": "Admin User 2",
+      "status": "admin",
+      "email": "admin2@example.com",
+      "passwordHash": "hashed_password_2"
+    },
+    "operator1": {
+      "name": "Operator User 1",
+      "status": "operator",
+      "email": "operator1@example.com",
+      "passwordHash": "hashed_password_3"
+    },
+    "operator2": {
+      "name": "Operator User 2",
+      "status": "operator",
+      "email": "operator2@example.com",
+      "passwordHash": "hashed_password_4"
+    },
+    "user1": {
+      "name": "General User 1",
+      "status": "umum",
+      "email": "user1@example.com",
+      "passwordHash": "hashed_password_5"
+    }
+    // users bisa ditambahkan secara dinamis.
+  },
+  "machines": {
+    "machine1": {
+      "location": "Building A, 1st Floor",
+      "status": "active",
+      "inventory": {
+        "item1": {
+          "code": "M001",
+          "name": "Aqua 600ml",
+          "rackNumber": 1,
+          "imageUrl": "https://example.com/images/aqua_600ml.png",
+          "stock": 16,
+          "price": 5000,
+          "type": "minuman",
+          "promo": "tidak",
+          "hotItem": "tidak"
+        },
+        "item2": {
+          "code": "S001",
+          "name": "Chitato BBQ",
+          "rackNumber": 2,
+          "imageUrl": "https://example.com/images/chitato_bbq.png",
+          "stock": 16,
+          "price": 12000,
+          "type": "snack",
+          "promo": "ya",
+          "hotItem": "tidak"
+        }
+        // items dapat ditambahkan dinamis sampai 30.
+      }
+    }
+  },
+  "transactions": {
+    "transactionId1": {
+      "userId": "user1",
+      "machineId": "machine1",
+      "items": {
+        "item1": {
+          "name": "Aqua 600ml",
+          "quantity": 1,
+          "price": 5000
+        }
+      },
+      "total": 5000,
+      "paymentMethod": "QRIS",
+      "status": "success",
+      "timestamp": "2025-01-15T14:00:00Z"
+    }
+  },
+  "logs": {
+    "logId1": {
+      "machineId": "machine1",
+      "event": "stock_updated",
+      "details": {
+        "item": "Aqua 600ml",
+        "previousStock": 16,
+        "newStock": 15
+      },
+      "timestamp": "2025-01-15T14:01:00Z"
+    }
+  }
+}
