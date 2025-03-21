@@ -144,59 +144,93 @@
       </div>
     </section>
 
-    <!-- Receipts Dialog -->
+    <!-- Edit Product Dialog -->
     <Dialog
-      v-model:visible="isReceiptsDialogVisible"
-      header="Transaction Receipts"
+      v-model:visible="isEditDialogVisible"
+      header="Edit Product"
       modal
-      class="w-[90%] lg:w-[50%]"
+      class="w-[80%] lg:w-[25%]"
     >
       <div class="p-4">
-        <div class="flex justify-end mb-4">
-          <Button
-            label="Delete All Receipts"
-            class="p-button-danger"
-            @click="deleteAllReceipts"
-            :disabled="receipts.length === 0"
+        <!-- File Upload Input -->
+        <div class="mb-3">
+          <label for="productImage" class="block text-sm font-medium mb-1"
+            >Product Image</label
+          >
+          <FileUpload
+            id="productImage"
+            @select="onFileChange"
+            accept="image/*"
+            class="w-full"
+            mode="basic"
           />
         </div>
-        <div v-if="receipts.length > 0" class="overflow-x-auto">
-          <table class="w-full text-sm text-left text-gray-500">
-            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
-              <tr>
-                <th class="px-2 py-2">Times</th>
-                <th class="px-2 py-2">Items</th>
-                <th class="px-2 py-2">Grand Total</th>
-                <th class="px-2 py-2">Voucher</th>
-                <th class="px-2 py-5">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="receipt in receipts" :key="receipt.id" class="bg-white border-b">
-                <td class="px-2 py-2">{{ new Date(receipt.timestamp).toLocaleString() }}</td>
-                <td class="px-2 py-2">
-                  <ul>
-                    <li v-for="item in receipt.items" :key="item.id">
-                      {{ item.name }} (ID: {{ item.id }}) - Qty: {{ item.quantity }}, Price: Rp{{ item.price }}, Total: Rp{{ item.totalPrice }}, Rak: {{ item.rak }}, Disc: {{ item.discount }}%
-                    </li>
-                  </ul>
-                </td>
-                <td class="px-2 py-2">Rp{{ receipt.grandTotal }}</td>
-                <td class="px-2 py-2">{{ receipt.usedVoucher ? `Yes (${receipt.voucherDiscount}%)` : 'No' }}</td>
-                <td class="px-2 py-2 text-center">
-                  <button class="text-red-500" @click="downloadReceiptAsPdf(receipt)">
-                    <i class="pi pi-download"></i>
-                  </button>
-                  <button class="text-red-500" @click="deleteReceipt(receipt)">
-                    <i class="pi pi-trash"></i>
-                  </button>
-                  
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="mb-3">
+          <label for="productName" class="block text-sm font-medium mb-1"
+            >Product Name</label
+          >
+          <InputText
+            id="productName"
+            v-model="selectedProduct.name"
+            class="w-full"
+          />
         </div>
-        <div v-else class="text-center text-gray-500">No receipts available.</div>
+        <div class="mb-3">
+          <label for="productDesc" class="block text-sm font-medium mb-1"
+            >Description</label
+          >
+          <InputText
+            id="productDesc"
+            v-model="selectedProduct.desc"
+            class="w-full"
+          />
+        </div>
+        <div class="mb-3">
+          <label for="productPrice" class="block text-sm font-medium mb-1"
+            >Price</label
+          >
+          <InputNumber
+            id="productPrice"
+            v-model="selectedProduct.price"
+            mode="currency"
+            currency="IDR"
+            class="w-full"
+          />
+        </div>
+        <div class="mb-3">
+          <label for="productRak" class="block text-sm font-medium mb-1"
+            >Rak</label
+          >
+          <InputNumber
+            id="productRak"
+            v-model="selectedProduct.rak"
+            class="w-full"
+          />
+        </div>
+        <div class="mb-3">
+          <label for="productStock" class="block text-sm font-medium mb-1"
+            >Stock</label
+          >
+          <InputNumber
+            id="productStock"
+            v-model="selectedProduct.stock"
+            class="w-full"
+          />
+        </div>
+
+        <div class="flex justify-end mt-8 gap-2">
+          <Button
+            label="Cancel"
+            class="p-button-secondary"
+            @click="cancelEdit"
+          />
+          <Button
+            label="Save"
+            class="p-button-primary"
+            @click="saveProduct"
+            :loading="loading"
+          />
+        </div>
       </div>
     </Dialog>
 
@@ -301,9 +335,12 @@
                 </td>
                 <td class="px-2 py-2">Rp{{ receipt.grandTotal }}</td>
                 <td class="px-2 py-2">{{ receipt.usedVoucher ? `Yes (${receipt.voucherDiscount}%)` : 'No' }}</td>
-                <td class="px-2 py-2">
+                <td class="px-2 py-2 flex gap-2">
                   <button class="text-red-500" @click="deleteReceipt(receipt)">
                     <i class="pi pi-trash"></i>
+                  </button>
+                  <button class="text-blue-500" @click="downloadReceiptAsPDF(receipt)">
+                    <i class="pi pi-download"></i>
                   </button>
                 </td>
               </tr>
@@ -486,7 +523,7 @@ export default {
     const isReceiptsDialogVisible = ref(false);
     const receipts = ref([]);
 
-    const downloadReceiptAsPdf = (receipt) => {
+    const downloadReceiptAsPDF = (receipt) => {
       const doc = new jsPDF();
       
       // Judul
@@ -1002,7 +1039,7 @@ export default {
     });
 
     return {
-      downloadReceiptAsPdf,
+      downloadReceiptAsPDF,
       promos,
       responsiveOptions,
       getSeverity,
