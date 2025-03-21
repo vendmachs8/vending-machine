@@ -42,7 +42,7 @@
 
       <!-- Sticky Bar with Search and Sort -->
       <div class="sticky top-0 z-50 bg-transparent shadow-lg">
-        <div class="relative py-2 px-4 flex justify-between items-center gap-4">
+        <div class="relative py-2 px-2 flex justify-between items-center gap-2">
           <!-- Search Input -->
           <div class="relative flex items-center">
             <IconField class="flex items-center justify-center">
@@ -56,7 +56,7 @@
                 v-model="searchQuery"
                 placeholder="Search Products"
                 class="search-input transition-all duration-500 ease-in-out rounded-md"
-                :class="{ 'w-0 px-2 py-2': !isSearchExpanded, 'w-48 px-2 py-2 opacity-100': isSearchExpanded }"
+                :class="{ 'w-0 px-2 py-2': !isSearchExpanded, 'w-40 px-2 py-2 opacity-100': isSearchExpanded }"
               />
             </IconField>
           </div>
@@ -68,7 +68,7 @@
             class="flex items-center justify-center py-2 px-4 text-sm font-medium text-white bg-primary-100 rounded-md transition-colors hover:bg-primary-200 flex-grow"
           >
             <i class="pi pi-sort-alt mr-2"></i>
-            <span>Urutkan</span>
+            <span>Urutkan: {{ filterLabel }}</span>
             <i class="pi pi-angle-down ml-2"></i>
           </button>
 
@@ -81,44 +81,53 @@
           </button>
 
           <!-- Dropdown Menu -->
-          <div
-            ref="dropdownMenu"
-            v-if="isSortMenuOpen"
-            class="absolute right-4 top-full mt-1 bg-white shadow-lg rounded-md z-10"
-          >
-            <button
-              @click="selectSort('all')"
-              class="block w-full px-8 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left"
+          <transition name="pop">
+            <div
+              ref="dropdownMenu"
+              v-if="isSortMenuOpen"
+              class="absolute right-12 top-full mt-1 bg-white/80 shadow-lg rounded-md z-10 font-semibold"
             >
-              Semua
-            </button>
-            <button
-              @click="selectSort('food')"
-              class="block w-full px-8 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left"
-            >
-              Makanan
-            </button>
-            <button
-              @click="selectSort('drink')"
-              class="block w-full px-8 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left"
-            >
-              Minuman
-            </button>
-          </div>
+              <button
+                @click="selectSort('all')"
+                class="block w-full px-8 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                Semua
+              </button>
+              <button
+                @click="selectSort('food')"
+                class="block w-full px-8 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                Makanan
+              </button>
+              <button
+                @click="selectSort('drink')"
+                class="block w-full px-8 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                Minuman
+              </button>
+            </div>
+          </transition>
+           
+          
         </div>
       </div>
 
       <!-- Product Grid -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
         <div
           v-for="product in filteredProducts"
           :key="product.id"
           :class="[
             'relative transition ease-in-out delay-150 hover:shadow-2xl duration-300 shadow-grey-500 border-none border-surface-200 dark:border-surface-700 bg-azure rounded-2xl p-3 flex flex-col justify-between h-full rainbow-spots',
-            { 'opacity-30 shadow-2xl': product.stock === 0 }
+            { 'opacity-30 shadow-2xl': getAvailableStock(product) === 0 }
           ]"
           @click="openDrawer(product)"
         >
+          <!-- Diskon di Pojok Kanan Atas -->
+          <div v-if="product.discount > 0" class="absolute top-1 right-1 bg-red-500 text-white text-sm font-bold px-2 py-1 rounded-full">
+            -{{ product.discount }}%
+          </div>
+
           <div class="flex justify-center items-center">
             <img
               :src="product.image"
@@ -135,22 +144,21 @@
           <h3 class="text-lg font-medium mt-2 text-center">{{ product.name }}</h3>
           <p class="text-sm text-gray-500 mt-1 text-center">{{ product.desc }}</p>
           <p class="text-sm text-gray-500 mt-1 text-center">
-            No.{{ product.rak }} | Stok : {{ product.stock }}
+            No.{{ product.rak }} | Stok : {{ getAvailableStock(product) }}
           </p>
           <div class="flex justify-between items-center mt-2">
             <div>
-              <!-- Harga dengan diskon -->
-              <p v-if="product.discount > 0" class="text-red-600 font-bold">Rp{{ getDiscountedPrice(product) }}</p>
-              <p v-if="product.discount > 0" class="text-gray-500 line-through">Rp{{ product.price }}</p>
-              <p v-else class="text-gray-600 font-bold">Rp{{ product.price }}</p>
+              <p v-if="product.discount > 0" class="text-red-600 font-bold">IDR{{ getDiscountedPrice(product) }}</p>
+              <p v-if="product.discount > 0" class="text-gray-400 line-through">IDR{{ product.price }}</p>
+              <p v-else class="text-gray-600 font-bold">IDR{{ product.price }}</p>
             </div>
             <div class="justify-items-end items-end">
               <button
-                :disabled="product.stock === 0"
+                :disabled="getAvailableStock(product) === 0"
                 class="text-white px-3 py-2 rounded-xl transition"
                 :class="{
-                  'bg-gray-400 cursor-not-allowed': product.stock === 0,
-                  'bg-primary-200 hover:bg-primary-300': product.stock > 0
+                  'bg-gray-400 cursor-not-allowed': getAvailableStock(product) === 0,
+                  'bg-primary-200 hover:bg-primary-300': getAvailableStock(product) > 0
                 }"
                 @click.stop="
                   (event) => {
@@ -162,12 +170,6 @@
                 <i class="pi pi-shopping-cart"></i>
               </button>
             </div>
-          </div>
-          <div
-            v-if="product.stock === 0"
-            class="absolute inset-0 flex items-center justify-center"
-          >
-            <span class="text-2xl font-bold text-black">HABIS</span>
           </div>
         </div>
       </div>
@@ -192,17 +194,17 @@
         />
         <p class="text-lg text-gray-500 mt-2">{{ selectedProduct.desc }}</p>
         <p class="text-sm text-gray-500 mt-2">
-          Rak: {{ selectedProduct.rak }} | Stok: {{ selectedProduct.stock }}
+          Rak: {{ selectedProduct.rak }} | Stok: {{ getAvailableStock(selectedProduct) }}
         </p>
-        <!-- Harga dengan diskon di Drawer -->
         <div class="mt-4 flex justify-center items-center gap-2">
-          <p v-if="selectedProduct.discount > 0" class="text-red-600 font-bold text-2xl">Rp{{ getDiscountedPrice(selectedProduct) }}</p>
-          <p v-if="selectedProduct.discount > 0" class="text-gray-500 line-through text-lg">Rp{{ selectedProduct.price }}</p>
-          <p v-else class="text-gray-600 font-bold text-2xl">Rp{{ selectedProduct.price }}</p>
+          <p v-if="selectedProduct.discount > 0" class="text-red-600 font-bold text-2xl">IDR{{ getDiscountedPrice(selectedProduct) }}</p>
+          <p v-if="selectedProduct.discount > 0" class="text-gray-500 line-through text-lg">IDR{{ selectedProduct.price }}</p>
+          <p v-else class="text-gray-600 font-bold text-2xl">IDR{{ selectedProduct.price }}</p>
         </div>
         <button
+          :disabled="getAvailableStock(selectedProduct) === 0"
           class="mt-4 text-white px-4 py-2 rounded-md transition w-full"
-          style="background-color: var(--p-primary-500)"
+          :class="{ 'bg-gray-400 cursor-not-allowed': getAvailableStock(selectedProduct) === 0, 'bg-primary-500': getAvailableStock(selectedProduct) > 0 }"
           @click="
             (event) => {
               closeDrawer(selectedProduct);
@@ -251,19 +253,18 @@
               </button>
               <button
                 class="p-2 bg-blue-500 rounded-md"
+                :disabled="getAvailableStock(item.product) <= item.quantity"
                 @click="increaseQuantity(item)"
               >
                 <i class="pi pi-plus" />
               </button>
             </div>
-            <!-- Harga dengan diskon di Cart -->
             <div class="text-right">
               <span v-if="item.product.discount > 0" class="font-bold text-red-600">Rp{{ getDiscountedPrice(item.product) * item.quantity }}</span>
               <span v-if="item.product.discount > 0" class="block text-gray-500 line-through text-sm">Rp{{ item.product.price * item.quantity }}</span>
               <span v-else class="font-bold">Rp{{ item.product.price * item.quantity }}</span>
             </div>
           </div>
-          <!-- Total dengan diskon -->
           <div class="text-xl font-bold text-right mt-8">
             Total: Rp.{{ totalPaymentWithPromo }}
           </div>
@@ -357,7 +358,7 @@
 import { ref, onMounted, computed, watch, onUnmounted } from "vue";
 import qrcodeImage from "../assets/qrcode.png";
 import { db } from "../firebase";
-import { onValue, ref as dbRef, update, push, set } from "firebase/database"; // Tambah push dan set untuk receipt
+import { onValue, ref as dbRef, update, push, set } from "firebase/database";
 import { useToast } from "primevue/usetoast";
 
 export default {
@@ -367,7 +368,8 @@ export default {
     const inactivityDuration = 30000;
     const toast = useToast();
     const promos = ref([]);
-    const products = ref([]);
+    const products = ref([]); // Produk asli dari Firebase
+    const sortedProducts = ref([]); // Produk yang sudah disortir untuk ditampilkan
     const filter = ref("all");
     const isDrawerVisible = ref(false);
     const selectedProduct = ref(null);
@@ -389,18 +391,37 @@ export default {
     const promoCode = ref("");
     const promoDiscount = ref(0);
 
+    const filterLabel = computed(() => {
+      switch (filter.value) {
+        case "all":
+          return "Semua";
+        case "food":
+          return "Makanan";
+        case "drink":
+          return "Minuman";
+        default:
+          return "Semua"; // Default fallback
+      }
+    });
+
     const validPromoCodes = {
       "DISKON10": 10,
       "DISKON20": 20,
       "FREESHIP": 15
     };
 
-    // Fungsi untuk menghitung harga setelah diskon
     const getDiscountedPrice = (product) => {
       if (product.discount && product.discount > 0) {
         return Math.round(product.price * (1 - product.discount / 100));
       }
       return product.price;
+    };
+
+    // Hitung stok tersedia dengan memperhitungkan item di keranjang
+    const getAvailableStock = (product) => {
+      const cartItem = cartItems.value.find((item) => item.product.id === product.id);
+      const cartQuantity = cartItem ? cartItem.quantity : 0;
+      return product.stock - cartQuantity;
     };
 
     const totalPaymentWithPromo = computed(() => {
@@ -445,13 +466,32 @@ export default {
           ? Object.values(fetchedPromos).filter((item) => item && item.image && item.name)
           : [];
       });
+
       const productsRef = dbRef(db, "products");
       onValue(productsRef, (snapshot) => {
         const fetchedProducts = snapshot.val();
         products.value = fetchedProducts
           ? Object.values(fetchedProducts).filter((item) => item && item.image && item.name)
           : [];
+        // Sortir hanya saat data diperbarui dari Firebase
+        updateSortedProducts();
       });
+    };
+
+    const updateSortedProducts = () => {
+      let results = [...products.value];
+      if (filter.value !== "all") {
+        results = results.filter((product) =>
+          filter.value === "food" ? product.image.includes("food") : product.image.includes("drink")
+        );
+      }
+      if (searchQuery.value.trim() !== "") {
+        results = results.filter((product) =>
+          product.name.toLowerCase().includes(searchQuery.value.toLowerCase())
+        );
+      }
+      // Sortir berdasarkan stok awal dari Firebase, bukan stok tersedia real-time
+      sortedProducts.value = results.sort((a, b) => b.stock - a.stock);
     };
 
     const handleUserActivity = () => {
@@ -478,6 +518,7 @@ export default {
     const selectSort = (type) => {
       filter.value = type;
       isSortMenuOpen.value = false;
+      updateSortedProducts(); // Sortir hanya saat memilih filter
       resetInactivityTimer();
       setTimeout(() => {
         const productGrid = document.getElementById("featured-products");
@@ -511,6 +552,15 @@ export default {
       }
     });
 
+    watch(
+      () => sortButton.value?.offsetWidth,
+      (newWidth) => {
+        if (isSortMenuOpen.value && dropdownMenu.value && newWidth) {
+          dropdownMenu.value.style.width = `${newWidth}px`;
+        }
+      }
+    );
+
     const isInCart = (product) => {
       return cartItems.value.some((item) => item.product.id === product.id);
     };
@@ -531,26 +581,33 @@ export default {
       }
     };
 
-    const filterProducts = (type) => {
-      filter.value = type;
-      resetInactivityTimer();
-      const productGrid = document.getElementById("featured-products");
-      if (productGrid) {
-        productGrid.scrollIntoView({ behavior: "smooth" });
-      }
-    };
-
     const addToCart = (product) => {
-      if (product.stock === 0) return;
+      if (getAvailableStock(product) <= 0) {
+        toast.add({
+          severity: "warn",
+          summary: "Out of Stock",
+          detail: `${product.name} is out of stock.`,
+          life: 3000
+        });
+        return;
+      }
       const existingItem = cartItems.value.find((item) => item.product.id === product.id);
       if (existingItem) {
         if (existingItem.quantity < product.stock) {
           existingItem.quantity += 1;
+          cartCount.value += 1;
+        } else {
+          toast.add({
+            severity: "warn",
+            summary: "Stock Limit Reached",
+            detail: `Cannot add more ${product.name}. Stock limit reached.`,
+            life: 3000
+          });
         }
       } else {
-        cartItems.value.unshift({ product, quantity: 1 });
+        cartItems.value.unshift({ product: { ...product }, quantity: 1 });
+        cartCount.value += 1;
       }
-      cartCount.value += 1;
       calculateTotalPayment();
       resetInactivityTimer();
     };
@@ -605,23 +662,32 @@ export default {
     };
 
     const decreaseQuantity = (item) => {
-      if (item.quantity >= 1) {
+      if (item.quantity > 1) {
         item.quantity -= 1;
         cartCount.value -= 1;
-        calculateTotalPayment();
-        resetInactivityTimer();
-        if (item.quantity === 0) {
-          cartItems.value = cartItems.value.filter((cartItem) => cartItem.product.id !== item.product.id);
-          if (cartItems.value.length === 0) toggleCartDrawer();
-        }
+      } else {
+        cartItems.value = cartItems.value.filter((cartItem) => cartItem.product.id !== item.product.id);
+        cartCount.value -= 1;
+        if (cartItems.value.length === 0) toggleCartDrawer();
       }
+      calculateTotalPayment();
+      resetInactivityTimer();
     };
 
     const increaseQuantity = (item) => {
-      item.quantity += 1;
-      cartCount.value += 1;
-      calculateTotalPayment();
-      resetInactivityTimer();
+      if (getAvailableStock(item.product) > item.quantity) {
+        item.quantity += 1;
+        cartCount.value += 1;
+        calculateTotalPayment();
+        resetInactivityTimer();
+      } else {
+        toast.add({
+          severity: "warn",
+          summary: "Stock Limit Reached",
+          detail: `Cannot add more ${item.product.name}. Stock limit reached.`,
+          life: 3000
+        });
+      }
     };
 
     const proceedToPayment = async () => {
@@ -633,7 +699,6 @@ export default {
       setTimeout(async () => {
         showPaymentSuccessModal.value = true;
 
-        // Mengurangi stok barang di Firebase
         try {
           for (const item of cartItems.value) {
             const productRef = dbRef(db, `products/${item.product.id}`);
@@ -651,22 +716,12 @@ export default {
             detail: "Product stock has been updated successfully.",
             life: 3000
           });
-        } catch (error) {
-          console.error("Error updating stock:", error);
-          toast.add({
-            severity: "error",
-            summary: "Stock Update Failed",
-            detail: "Failed to update product stock.",
-            life: 3000
-          });
-        }
 
-        // Simpan receipt ke Firebase
-        try {
+          // Simpan receipt ke Firebase
           const receiptsRef = dbRef(db, "receipts");
-          const newReceiptRef = push(receiptsRef); // Generate ID unik untuk receipt
+          const newReceiptRef = push(receiptsRef);
           const receiptData = {
-            timestamp: new Date().toISOString(), // Waktu pembelian
+            timestamp: new Date().toISOString(),
             items: cartItems.value.map(item => ({
               id: item.product.id,
               name: item.product.name,
@@ -687,17 +742,19 @@ export default {
             detail: "Transaction receipt has been saved.",
             life: 3000
           });
+
+          // Update sorting setelah checkout
+          updateSortedProducts();
         } catch (error) {
-          console.error("Error saving receipt:", error);
+          console.error("Error during payment:", error);
           toast.add({
             severity: "error",
-            summary: "Receipt Save Failed",
-            detail: "Failed to save transaction receipt.",
+            summary: "Payment Error",
+            detail: "Failed to process payment or save receipt.",
             life: 3000
           });
         }
 
-        // Reset keranjang setelah transaksi selesai
         cartItems.value = [];
         cartCount.value = 0;
         totalPayment.value = 0;
@@ -709,7 +766,6 @@ export default {
       }, 6000);
     };
 
-    // Fungsi untuk menentukan inventoryStatus berdasarkan stok
     const determineInventoryStatus = (stock) => {
       if (stock > 5) return "INSTOCK";
       if (stock > 0 && stock <= 5) return "LOWSTOCK";
@@ -721,19 +777,9 @@ export default {
       resetInactivityTimer();
     };
 
+    // Ganti filteredProducts menjadi computed yang hanya menampilkan sortedProducts
     const filteredProducts = computed(() => {
-      let results = products.value;
-      if (filter.value !== "all") {
-        results = results.filter((product) =>
-          filter.value === "food" ? product.image.includes("food") : product.image.includes("drink")
-        );
-      }
-      if (searchQuery.value.trim() !== "") {
-        results = results.filter((product) =>
-          product.name.toLowerCase().includes(searchQuery.value.toLowerCase())
-        );
-      }
-      return results.sort((a, b) => b.stock - a.stock);
+      return sortedProducts.value;
     });
 
     const openDrawer = (product) => {
@@ -749,6 +795,7 @@ export default {
 
     watch(searchQuery, (newVal) => {
       if (newVal && isSearchExpanded.value) {
+        updateSortedProducts(); // Sortir saat pencarian berubah
         resetInactivityTimer();
       }
     });
@@ -784,6 +831,10 @@ export default {
       window.addEventListener("keydown", handleUserActivity);
       window.addEventListener("scroll", handleUserActivity);
       if (cartCount.value > 0) startWiggleAnimation();
+      if (isSortMenuOpen.value && sortButton.value && dropdownMenu.value) {
+        const buttonWidth = sortButton.value.offsetWidth;
+        dropdownMenu.value.style.width = `${buttonWidth}px`;
+      }
     });
 
     onUnmounted(() => {
@@ -805,11 +856,12 @@ export default {
       getSeverity,
       products,
       filter,
+      filterLabel,
       filteredProducts,
-      filterProducts,
+      sortedProducts, // Tambahkan untuk debugging jika perlu
+      selectSort,
       isSortMenuOpen,
       toggleSortMenu,
-      selectSort,
       openDrawer,
       isDrawerVisible,
       selectedProduct,
@@ -833,6 +885,7 @@ export default {
       dropdownMenu,
       totalPaymentWithPromo,
       getDiscountedPrice,
+      getAvailableStock,
       showPromoDialog,
       togglePromoDialog,
       promoCode,
@@ -848,7 +901,6 @@ export default {
   pointer-events: none;
 }
 
-/* Button Styling */
 .cart-button {
   padding: 0.75rem 1rem;
   height: 3.5rem;
@@ -864,20 +916,17 @@ button.flex-grow {
   width: auto;
 }
 
-/* Cart Icon Animation */
 .cart-icon-wrapper {
   display: inline-flex;
   align-items: center;
 }
 
-/* Content Transition */
 .cart-content {
   display: inline-flex;
   align-items: center;
   transition: all 0.3s ease;
 }
 
-/* Styling untuk harga diskon */
 .text-red-600 {
   color: #dc2626;
 }

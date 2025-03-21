@@ -3,6 +3,12 @@
 @import "./primevue/tailwind.css";
 @import "tailwindcss/utilities";
 
+.sort-button-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .expand-enter-active,
 .expand-leave-active {
   transition: all 0.3s ease;
@@ -14,7 +20,7 @@
 }
 
 .pop-enter-active {
-    animation: popIn 0.5s ease-out;
+    animation: popIn 0.3s ease-out;
   }
   
   .pop-leave-active {
@@ -22,11 +28,11 @@
   }
   
   .cart-button.scale {
-    animation: scaleUpDown 1.5s ease;
+    animation: scaleUpDown 0.3s ease;
   }
   
   .cart-icon-wrapper.wiggle {
-    animation: wiggleAndJump 0.5s ease;
+    animation: wiggleAndJump 0.3s ease;
   }
 
 .sticky {

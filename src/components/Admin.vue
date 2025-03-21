@@ -144,65 +144,59 @@
       </div>
     </section>
 
-    <!-- Edit Product Dialog -->
+    <!-- Receipts Dialog -->
     <Dialog
-      v-model:visible="isEditDialogVisible"
-      header="Edit Product"
+      v-model:visible="isReceiptsDialogVisible"
+      header="Transaction Receipts"
       modal
-      class="w-[80%] lg:w-[25%]"
+      class="w-[90%] lg:w-[50%]"
     >
       <div class="p-4">
-        <div class="mb-3">
-          <label for="productImage" class="block text-sm font-medium mb-1">Product Image</label>
-          <FileUpload
-            id="productImage"
-            @select="onFileChange"
-            accept="image/*"
-            class="w-full"
-            mode="basic"
+        <div class="flex justify-end mb-4">
+          <Button
+            label="Delete All Receipts"
+            class="p-button-danger"
+            @click="deleteAllReceipts"
+            :disabled="receipts.length === 0"
           />
         </div>
-        <div class="mb-3">
-          <label for="productName" class="block text-sm font-medium mb-1">Product Name</label>
-          <InputText id="productName" v-model="selectedProduct.name" class="w-full" />
+        <div v-if="receipts.length > 0" class="overflow-x-auto">
+          <table class="w-full text-sm text-left text-gray-500">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+              <tr>
+                <th class="px-2 py-2">Times</th>
+                <th class="px-2 py-2">Items</th>
+                <th class="px-2 py-2">Grand Total</th>
+                <th class="px-2 py-2">Voucher</th>
+                <th class="px-2 py-5">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="receipt in receipts" :key="receipt.id" class="bg-white border-b">
+                <td class="px-2 py-2">{{ new Date(receipt.timestamp).toLocaleString() }}</td>
+                <td class="px-2 py-2">
+                  <ul>
+                    <li v-for="item in receipt.items" :key="item.id">
+                      {{ item.name }} (ID: {{ item.id }}) - Qty: {{ item.quantity }}, Price: Rp{{ item.price }}, Total: Rp{{ item.totalPrice }}, Rak: {{ item.rak }}, Disc: {{ item.discount }}%
+                    </li>
+                  </ul>
+                </td>
+                <td class="px-2 py-2">Rp{{ receipt.grandTotal }}</td>
+                <td class="px-2 py-2">{{ receipt.usedVoucher ? `Yes (${receipt.voucherDiscount}%)` : 'No' }}</td>
+                <td class="px-2 py-2 text-center">
+                  <button class="text-red-500" @click="downloadReceiptAsPdf(receipt)">
+                    <i class="pi pi-download"></i>
+                  </button>
+                  <button class="text-red-500" @click="deleteReceipt(receipt)">
+                    <i class="pi pi-trash"></i>
+                  </button>
+                  
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <div class="mb-3">
-          <label for="productDesc" class="block text-sm font-medium mb-1">Description</label>
-          <InputText id="productDesc" v-model="selectedProduct.desc" class="w-full" />
-        </div>
-        <div class="mb-3">
-          <label for="productPrice" class="block text-sm font-medium mb-1">Price</label>
-          <InputNumber
-            id="productPrice"
-            v-model="selectedProduct.price"
-            mode="currency"
-            currency="IDR"
-            class="w-full"
-          />
-        </div>
-        <div class="mb-3">
-          <label for="productDiscount" class="block text-sm font-medium mb-1">Discount (%)</label>
-          <InputNumber
-            id="productDiscount"
-            v-model="selectedProduct.discount"
-            class="w-full"
-            :min="0"
-            :max="100"
-            placeholder="0"
-          />
-        </div>
-        <div class="mb-3">
-          <label for="productRak" class="block text-sm font-medium mb-1">Rak</label>
-          <InputNumber id="productRak" v-model="selectedProduct.rak" class="w-full" />
-        </div>
-        <div class="mb-3">
-          <label for="productStock" class="block text-sm font-medium mb-1">Stock</label>
-          <InputNumber id="productStock" v-model="selectedProduct.stock" class="w-full" />
-        </div>
-        <div class="flex justify-end mt-8 gap-2">
-          <Button label="Cancel" class="p-button-secondary" @click="cancelEdit" />
-          <Button label="Save" class="p-button-primary" @click="saveProduct" :loading="loading" />
-        </div>
+        <div v-else class="text-center text-gray-500">No receipts available.</div>
       </div>
     </Dialog>
 
@@ -448,6 +442,7 @@ import { onValue, ref as dbRef, update, remove, push, get, set } from "firebase/
 import { getStorage, ref as storRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useToast } from "primevue/usetoast";
 import { useConfirm } from "primevue/useconfirm";
+import jsPDF from "jspdf";
 
 export default {
   setup() {
@@ -490,6 +485,37 @@ export default {
     const promoDiscount = ref(0);
     const isReceiptsDialogVisible = ref(false);
     const receipts = ref([]);
+
+    const downloadReceiptAsPdf = (receipt) => {
+      const doc = new jsPDF();
+      
+      // Judul
+      doc.setFontSize(16);
+      doc.text("Transaction Receipt", 10, 10);
+      
+      // Informasi Waktu
+      doc.setFontSize(12);
+      doc.text(`Time: ${new Date(receipt.timestamp).toLocaleString()}`, 10, 20);
+      
+      // Header Tabel
+      doc.text("Items:", 10, 30);
+      doc.setFontSize(10);
+      let yPosition = 40;
+
+      // Daftar Item
+      receipt.items.forEach((item) => {
+        const itemText = `${item.name} (ID: ${item.id}) - Qty: ${item.quantity}, Price: Rp${item.price}, Total: Rp${item.totalPrice}, Rak: ${item.rak}, Disc: ${item.discount}%`;
+        doc.text(itemText, 10, yPosition);
+        yPosition += 10; // Tambah jarak antar baris
+      });
+
+      // Grand Total dan Voucher
+      doc.text(`Grand Total: Rp${receipt.grandTotal}`, 10, yPosition + 10);
+      doc.text(`Voucher: ${receipt.usedVoucher ? `Yes (${receipt.voucherDiscount}%)` : "No"}`, 10, yPosition + 20);
+
+      // Simpan file PDF
+      doc.save(`receipt_${receipt.id}_${new Date(receipt.timestamp).toISOString().split("T")[0]}.pdf`);
+    };
 
     const validPromoCodes = {
       "DISKON10": 10,
@@ -976,6 +1002,7 @@ export default {
     });
 
     return {
+      downloadReceiptAsPdf,
       promos,
       responsiveOptions,
       getSeverity,
