@@ -1,15 +1,17 @@
 :root {
-  --p-primary-50: #eef0fd;
-  --p-primary-100: #dbdcfa;
-  --p-primary-200: #b9bdf6;
-  --p-primary-300: #9298f1;
-  --p-primary-400: #6f75ed;
-  --p-primary-500: #4e52e9; /* Warna utama */
-  --p-primary-600: #4145d6;
-  --p-primary-700: #373bbe;
-  --p-primary-800: #2e32a4;
-  --p-primary-900: #292c87;
-  --p-primary-950: #1b1e59;
+  --p-primary-50: #A7E6FF;
+  --p-primary-100: #3ABEF9;
+  --p-primary-200: #3572EF;
+  --p-primary-300: #050C9C;
+  --p-primary-400: #FFE6E6;
+  --p-primary-500: #E1AFD1; /* Warna utama */
+  --p-primary-600: #AD88C6;
+  --p-primary-700: #7469B6;
+  --p-primary-800: #C40C0C;
+  --p-primary-900: #FF6500;
+  --p-primary-950: #FF8A08;
+  --p-primary-1000: #FFC100;
+  
   --p-surface-0: #ffffff;
   --p-surface-50: #f7fafc;
   --p-surface-100: #f1f5f9;

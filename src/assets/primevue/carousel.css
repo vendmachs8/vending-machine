@@ -13,7 +13,7 @@
 }
 
 .p-carousel-viewport {
-    @apply overflow-hidden w-full
+    @apply overflow-hidden w-full relative /* Tambahkan relative agar menjadi parent untuk posisi absolut */
 }
 
 .p-carousel-item-list {
@@ -26,7 +26,8 @@
 }
 
 .p-carousel-indicator-list {
-    @apply flex flex-row justify-center flex-wrap p-4 gap-2 m-0 list-none
+    @apply flex flex-row justify-center flex-wrap gap-2 m-0 list-none
+           left-0 right-0 z-10 /* Posisikan di dalam viewport */
 }
 
 .p-carousel-indicator-button {

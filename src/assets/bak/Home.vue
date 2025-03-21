@@ -1,3 +1,4 @@
+<!--  -->
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- Header and Content -->
@@ -265,7 +266,7 @@
           </div>
           <!-- Total dengan diskon -->
           <div class="text-xl font-bold text-right mt-8">
-            Total: Rp.{{ totalPaymentWithPromo }}
+            Total: Rp.{{ totalPayment }}
           </div>
           <div class="mt-4">
             <Button
@@ -357,7 +358,7 @@
 import { ref, onMounted, computed, watch, onUnmounted } from "vue";
 import qrcodeImage from "../assets/qrcode.png";
 import { db } from "../firebase";
-import { onValue, ref as dbRef, update, push, set } from "firebase/database"; // Tambah push dan set untuk receipt
+import { onValue, ref as dbRef } from "firebase/database";
 import { useToast } from "primevue/usetoast";
 
 export default {
@@ -390,8 +391,8 @@ export default {
     const promoDiscount = ref(0);
 
     const validPromoCodes = {
-      "DISKON10": 10,
-      "DISKON20": 20,
+      "DISKON10": 10, 
+      "DISKON20": 20, 
       "FREESHIP": 15
     };
 
@@ -432,6 +433,8 @@ export default {
         cartItems.value = [];
         cartCount.value = 0;
         totalPayment.value = 0;
+        // promoCode.value = ""; 
+        // promoDiscount.value = 0;
         if (searchInput.value) searchInput.value.$el.blur();
         fetchData();
       }
@@ -570,6 +573,7 @@ export default {
       }
     };
 
+    // Perbarui perhitungan total untuk mempertimbangkan diskon
     const calculateTotalPayment = () => {
       totalPayment.value = cartItems.value.reduce((total, item) => {
         const price = getDiscountedPrice(item.product);
@@ -624,80 +628,14 @@ export default {
       resetInactivityTimer();
     };
 
-    const proceedToPayment = async () => {
+    const proceedToPayment = () => {
       isLoadingPayment.value = true;
       clearTimeout(inactivityTimeout);
       setTimeout(() => {
         showQRCode.value = true;
       }, 3000);
-      setTimeout(async () => {
+      setTimeout(() => {
         showPaymentSuccessModal.value = true;
-
-        // Mengurangi stok barang di Firebase
-        try {
-          for (const item of cartItems.value) {
-            const productRef = dbRef(db, `products/${item.product.id}`);
-            const newStock = item.product.stock - item.quantity;
-            const updatedInventoryStatus = determineInventoryStatus(newStock);
-
-            await update(productRef, {
-              stock: newStock >= 0 ? newStock : 0,
-              inventoryStatus: updatedInventoryStatus
-            });
-          }
-          toast.add({
-            severity: "success",
-            summary: "Stock Updated",
-            detail: "Product stock has been updated successfully.",
-            life: 3000
-          });
-        } catch (error) {
-          console.error("Error updating stock:", error);
-          toast.add({
-            severity: "error",
-            summary: "Stock Update Failed",
-            detail: "Failed to update product stock.",
-            life: 3000
-          });
-        }
-
-        // Simpan receipt ke Firebase
-        try {
-          const receiptsRef = dbRef(db, "receipts");
-          const newReceiptRef = push(receiptsRef); // Generate ID unik untuk receipt
-          const receiptData = {
-            timestamp: new Date().toISOString(), // Waktu pembelian
-            items: cartItems.value.map(item => ({
-              id: item.product.id,
-              name: item.product.name,
-              price: item.product.price,
-              totalPrice: getDiscountedPrice(item.product) * item.quantity,
-              quantity: item.quantity,
-              rak: item.product.rak,
-              discount: item.product.discount || 0
-            })),
-            grandTotal: totalPaymentWithPromo.value,
-            usedVoucher: promoDiscount.value > 0 ? true : false,
-            voucherDiscount: promoDiscount.value
-          };
-          await set(newReceiptRef, receiptData);
-          toast.add({
-            severity: "success",
-            summary: "Receipt Saved",
-            detail: "Transaction receipt has been saved.",
-            life: 3000
-          });
-        } catch (error) {
-          console.error("Error saving receipt:", error);
-          toast.add({
-            severity: "error",
-            summary: "Receipt Save Failed",
-            detail: "Failed to save transaction receipt.",
-            life: 3000
-          });
-        }
-
-        // Reset keranjang setelah transaksi selesai
         cartItems.value = [];
         cartCount.value = 0;
         totalPayment.value = 0;
@@ -707,13 +645,6 @@ export default {
         showQRCode.value = false;
         resetInactivityTimer();
       }, 6000);
-    };
-
-    // Fungsi untuk menentukan inventoryStatus berdasarkan stok
-    const determineInventoryStatus = (stock) => {
-      if (stock > 5) return "INSTOCK";
-      if (stock > 0 && stock <= 5) return "LOWSTOCK";
-      return "OUTOFSTOCK";
     };
 
     const toggleCartDrawer = () => {
@@ -762,6 +693,7 @@ export default {
 
     const togglePromoDialog = () => {
       showPromoDialog.value = !showPromoDialog.value;
+      console.log("togglePromoDialog");
       resetInactivityTimer();
     };
 
@@ -772,9 +704,10 @@ export default {
         toast.add({ severity: "success", summary: "Success", detail: "Promo code applied!", life: 3000 });
         showPromoDialog.value = false;
       } else {
+        console.log("error");
         toast.add({ severity: "error", summary: "Error", detail: "Invalid promo code", life: 3000 });
       }
-      promoCode.value = "";
+      promoCode.value = ""; // Reset input setelah digunakan
     };
 
     onMounted(() => {
@@ -831,12 +764,12 @@ export default {
       searchInput,
       sortButton,
       dropdownMenu,
-      totalPaymentWithPromo,
+      totalPaymentWithPromo, 
       getDiscountedPrice,
       showPromoDialog,
       togglePromoDialog,
       promoCode,
-      applyPromoCode
+      applyPromoCode 
     };
   },
 };
@@ -879,11 +812,11 @@ button.flex-grow {
 
 /* Styling untuk harga diskon */
 .text-red-600 {
-  color: #dc2626;
+  color: #dc2626; /* Merah untuk harga diskon */
 }
 
 .text-gray-500 {
-  color: #6b7280;
+  color: #6b7280; /* Abu-abu untuk harga asli */
 }
 
 .line-through {
@@ -893,4 +826,6 @@ button.flex-grow {
 .pi-ticket {
   font-size: 1.2rem;
 }
+
+
 </style>

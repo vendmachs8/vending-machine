@@ -9,15 +9,14 @@ import { getAnalytics } from "firebase/analytics";
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyDrrszF9LAB6LGCKp3c4i1z2Xb-5ZVGsQ0",
-  authDomain: "absensi-s8-malang.firebaseapp.com",
-  databaseURL:
-    "https://absensi-s8-malang-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "absensi-s8-malang",
-  storageBucket: "absensi-s8-malang.appspot.com",
-  messagingSenderId: "87469885450",
-  appId: "1:87469885450:web:4ab09e00028d4c06fc37f3",
-  measurementId: "G-3CCXRFHQH0",
+  apiKey: "AIzaSyAntV01xlIiHUP1iwTOi2KafH5ORNrQZZs",
+  authDomain: "vending-machine-d7e2e.firebaseapp.com",
+  databaseURL: "https://vending-machine-d7e2e-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "vending-machine-d7e2e",
+  storageBucket: "vending-machine-d7e2e.firebasestorage.app",
+  messagingSenderId: "792497055844",
+  appId: "1:792497055844:web:4056d652f527338bd29771",
+  measurementId: "G-RZHX27SYMK"
 };
 
 // Initialize Firebase
