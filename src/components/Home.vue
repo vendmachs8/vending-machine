@@ -3,6 +3,9 @@
     <!-- Header and Content -->
     <header class="w-full">
       <div class="pt-3 px-8 text-sm text-gray-500 mb-3">
+        <p v-if="loggedInUser" class="text-lg font-semibold text-gray-700 mb-1">
+          Hai {{ loggedInUser }}
+        </p>
         <p>
           <i class="pi pi-map-marker mr-1" style="font-size: smaller"></i>Lokasi
           : Universitas Brawijaya
@@ -371,6 +374,8 @@ export default {
     const products = ref([]); // Produk asli dari Firebase
     const sortedProducts = ref([]); // Produk yang sudah disortir untuk ditampilkan
     const filter = ref("all");
+    const loggedInUser = ref(localStorage.getItem("loggedInUser") || "");
+
     const isDrawerVisible = ref(false);
     const selectedProduct = ref(null);
     const searchQuery = ref("");
@@ -409,6 +414,45 @@ export default {
       "DISKON20": 20,
       "FREESHIP": 15
     };
+
+    const logActivity = async (activityCode, description = null) => {
+      if (loggedInUser.value) {
+        const statusChangesRef = dbRef(db, `users/${loggedInUser.value}/statusChanges`);
+        try {
+          await push(statusChangesRef, {
+            type: "activity", // Tambahkan tipe untuk membedakan dari status
+            code: activityCode,
+            timestamp: new Date().toISOString(),
+            ...(description && { description }),
+          });
+          console.log(`Activity ${activityCode} logged for ${loggedInUser.value}`);
+        } catch (error) {
+          console.error("Error logging activity:", error);
+        }
+      }
+    };
+
+    // Fungsi untuk test koneksi (A001)
+    const testConnection = async () => {
+      try {
+        const usersRef = dbRef(db, "users");
+        await get(usersRef); // Coba akses Firebase untuk test koneksi
+        toast.add({
+          severity: "success",
+          summary: "Connection Test",
+          detail: "Connection to Firebase is successful.",
+          life: 3000,
+        });
+        await logActivity("A001"); // Log aktivitas A001
+      } catch (error) {
+        toast.add({
+          severity: "error",
+          summary: "Connection Test",
+          detail: "Failed to connect to Firebase.",
+          life: 3000,
+        });
+      }
+    }
 
     const getDiscountedPrice = (product) => {
       if (product.discount && product.discount > 0) {
@@ -455,10 +499,12 @@ export default {
         totalPayment.value = 0;
         if (searchInput.value) searchInput.value.$el.blur();
         fetchData();
+        window.scrollTo(0,0); 
+        logActivity("A002"); 
       }
     };
 
-    const fetchData = () => {
+    const fetchData = async () => {
       const promosRef = dbRef(db, "promos");
       onValue(promosRef, (snapshot) => {
         const fetchedPromos = snapshot.val();
@@ -473,9 +519,35 @@ export default {
         products.value = fetchedProducts
           ? Object.values(fetchedProducts).filter((item) => item && item.image && item.name)
           : [];
-        // Sortir hanya saat data diperbarui dari Firebase
         updateSortedProducts();
       });
+
+      // Update status ke S001 saat halaman home dimuat
+      if (loggedInUser.value) {
+        const userRef = dbRef(db, `users/${loggedInUser.value}`);
+        const statusChangeRef = dbRef(db, `users/${loggedInUser.value}/statusChanges`);
+
+        try {
+          const userSnapshot = await get(userRef);
+          if (userSnapshot.exists()) {
+            const userData = userSnapshot.val();
+            await set(userRef, {
+              username: loggedInUser.value,
+              password: userData.password,
+              status: "S001",
+              statusChanges: userData.statusChanges || {}, // Pertahankan history lama
+            });
+
+            await push(statusChangeRef, {
+              status: "S001",          
+              timestamp: new Date().toISOString(),
+            });
+
+          }
+        } catch (error) {
+          console.error("Error setting status to S001:", error);
+        }
+      }
     };
 
     const updateSortedProducts = () => {
@@ -595,7 +667,8 @@ export default {
       if (existingItem) {
         if (existingItem.quantity < product.stock) {
           existingItem.quantity += 1;
-          cartCount.value += 1;
+          cartCount.value += 1; 
+          logActivity("A004", `Rak ${product.rak}`);          
         } else {
           toast.add({
             severity: "warn",
@@ -606,7 +679,8 @@ export default {
         }
       } else {
         cartItems.value.unshift({ product: { ...product }, quantity: 1 });
-        cartCount.value += 1;
+        cartCount.value += 1;      
+        logActivity("A004", `Rak ${product.rak}`);     
       }
       calculateTotalPayment();
       resetInactivityTimer();
@@ -672,6 +746,7 @@ export default {
       }
       calculateTotalPayment();
       resetInactivityTimer();
+      logActivity("A004", `Rak ${product.rak}`);     
     };
 
     const increaseQuantity = (item) => {
@@ -679,7 +754,8 @@ export default {
         item.quantity += 1;
         cartCount.value += 1;
         calculateTotalPayment();
-        resetInactivityTimer();
+        resetInactivityTimer();        
+        logActivity("A004", `Rak ${product.rak}`);     
       } else {
         toast.add({
           severity: "warn",
@@ -743,6 +819,20 @@ export default {
             life: 3000
           });
 
+          await logActivity("A005");
+
+          for (const item of cartItems.value) {
+            const rakNumber = String(item.product.rak).padStart(3, "0"); // Misal rak 5 jadi "005"
+            const activityCode = `Q${rakNumber}`; // Q005 untuk rak 5
+            const description = `OUT:${item.product.name}`;
+
+            // Ulangi log sesuai quantity
+            for (let i = 0; i < item.quantity; i++) {
+              console.log(`Logging activity ${activityCode} for ${description}`);
+              await logActivity(activityCode, description);
+            }
+          }
+
           // Update sorting setelah checkout
           updateSortedProducts();
         } catch (error) {
@@ -774,6 +864,9 @@ export default {
 
     const toggleCartDrawer = () => {
       isCartDrawerVisible.value = !isCartDrawerVisible.value;
+      if (isCartDrawerVisible.value && cartCount.value > 0){
+        logActivity("A003");
+      } 
       resetInactivityTimer();
     };
 
@@ -824,9 +917,11 @@ export default {
       promoCode.value = "";
     };
 
+
     onMounted(() => {
       fetchData();
       resetInactivityTimer();
+      testConnection(); 
       window.addEventListener("click", handleUserActivity);
       window.addEventListener("keydown", handleUserActivity);
       window.addEventListener("scroll", handleUserActivity);
@@ -846,6 +941,7 @@ export default {
     });
 
     return {
+      loggedInUser,
       isSearchExpanded,
       toggleSearch,
       isInCart,
