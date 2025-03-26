@@ -3,6 +3,25 @@
 @import "./primevue/tailwind.css";
 @import "tailwindcss/utilities";
 
+.price-container {
+  min-height: 48px; /* Sesuaikan nilai ini agar cukup untuk dua baris teks */
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Memastikan teks berada di tengah vertikal */
+}
+
+.bg-beige {
+  background-color: #f5e8c7;
+}
+
+.relative .absolute {
+  transition: all 0.3s ease-in-out;
+}
+
+.hover\:shadow-2xl:hover .absolute {
+  opacity: 0.5; /* Efek hover untuk background */
+}
+
 .sort-button-text {
   white-space: nowrap;
   overflow: hidden;
@@ -47,20 +66,20 @@
     overflow: hidden;
   }
   
-  .rainbow-spots::before,
-  .rainbow-spots::after {
-    content: '';
-    position: absolute;
-    width: 150px; /* Ukuran lingkaran kecil */
-    height: 150px;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.5), transparent 50%);
-    animation: rainbowSmooth 5s linear infinite;
-  }
-  
-  .rainbow-spots::before {
-    top: -25px; /* Pojok kanan atas */
-    right: -25px;
-  }
+.rainbow-spots::before,
+.rainbow-spots::after {
+  content: '';
+  position: absolute;
+  width: 150px; /* Ukuran lingkaran kecil */
+  height: 150px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.5), transparent 50%);
+  animation: rainbowSmooth 5s linear infinite;
+}
+
+.rainbow-spots::before {
+  top: -25px; /* Pojok kanan atas */
+  right: -25px;
+}
   
   @keyframes rainbowSmooth {
     0% { filter: hue-rotate(0deg); }

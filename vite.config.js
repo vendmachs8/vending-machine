@@ -6,5 +6,6 @@ export default defineConfig({
   plugins: [vue()],
   server: {
     host: true, // Ini akan memungkinkan akses dari jaringan
+    port: 5174, // Port yang digunakan
   },
 });

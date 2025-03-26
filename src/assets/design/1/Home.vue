@@ -59,12 +59,9 @@
 
             <button
               @click="toggleCartDrawer"
-              class="w-16 h-14 flex items-center justify-center rounded-full border border-gray-300 bg-white relative"
+              class="w-16 h-14 flex items-center justify-center rounded-full border border-gray-300 bg-white"
             >
-              <i class="pi pi-shopping-cart text-xl"></i>
-              <span v-if="cartCount > 0"
-                class="absolute -top-1 -right-1 bg-red-500 text-white text-md font-bold w-6 h-6 flex items-center justify-center rounded-full shadow-md"
-              >{{ cartCount }}</span>
+              <i class="pi pi-shopping-cart text-xl"></i> 
             </button>
           </div>
           <!-- Scrollable Filter Buttons and Sort Button -->
@@ -83,6 +80,7 @@
                 <div v-else class="flex items-center">
                   <i class="pi pi-sort" style="font-size: 1.6rem;"></i>
                 </div>
+                                
               </button>
               <ul v-if="showSortOptions" class="absolute z-50 bg-white border border-gray-50 rounded-3xl shadow-lg mt-2 p-2 w-48">
                 <li 
@@ -291,80 +289,59 @@
     <Drawer
       v-model:visible="isCartDrawerVisible"
       position="bottom"
-      style="overflow-y: auto; max-height: 75%; height: auto;"
+      style="height: auto; overflow-y: auto"
     >
-      <template #header> 
-        <div class="text-2xl font-bold">Cart</div>
+      <template #header>
+        <div class="text-2xl font-bold">Your Cart</div>
       </template>
-      <div class="p-0">
-        <div v-if="cartItems.length > 0"  >
+      <div class="p-4">
+        <div v-if="cartItems.length > 0">
           <div
             v-for="(item, index) in cartItems"
             :key="index"
-            class="flex items-center justify-between bg-white max-h-24 w-full rounded-xl overscroll-auto my-3"
+            class="flex items-center justify-between mb-4"
           >
             <img
               :src="item.product.image"
               alt="product.name"
-              class="w-24 h-24 object-cover rounded-md "
+              class="w-12 h-12 object-cover rounded-md"
             />
-            <div class="grid grid-flow-row min-w-24 max-w-24 items-center">
-              <span class="text-left mx-2">{{ item.product.name }}</span>
-              <div class="grid grid-flow-col">
-                <p class="text-left ml-2 text-gray-400">Rak  :</p>
-                <p class="text-left mr-8">{{ item.product.rak }}</p>
-              </div>
-              
+            <div class="flex flex-col">
+              <span class="font-medium">{{ item.product.name }}</span>
+              <span class="text-sm text-gray-500">Qty: {{ item.quantity }}</span>
             </div>
             <div class="flex items-center gap-2">
               <button
-                class="px-1 py-0 bg-white border border-gray-300 rounded-full"
+                class="px-2 py-1 bg-red-500 rounded-full"
                 @click="decreaseQuantity(item)"
               >
                 <i class="pi pi-minus" />
               </button>
-              <span v-if="item.quantity < 10">{{ `0${item.quantity}` }}</span>
-              <span v-else>{{ item.quantity }}</span>
               <button
-                class="px-1 py-0 bg-primary-200 rounded-full"
+                class="px-2 py-1 bg-blue-500 rounded-full"
                 :disabled="getAvailableStock(item.product) <= 0"
                 @click="increaseQuantity(item)"
               >
                 <i class="pi pi-plus" />
               </button>
             </div>
-            <div class="ml-3 mr-2 text-right">
+            <div class="text-right">
               <span v-if="item.product.discount > 0" class="font-bold text-red-600">Rp{{ getDiscountedPrice(item.product) * item.quantity }}</span>
               <span v-if="item.product.discount > 0" class="block text-gray-500 line-through text-sm">Rp{{ item.product.price * item.quantity }}</span>
               <span v-else class="font-bold">Rp{{ item.product.price * item.quantity }}</span>
             </div>
           </div>
-
-          <div class="sticky -bottom-5 z-50 bg-surface-100 py-4">
-            <div class="flex justify-between py-3 ">
-              <p class="text-gray-400">Sub-total: </p>              
-              <p class="font-bold">Rp.{{ totalPaymentWithPromo }}</p>
-            </div>
-            <div class="flex justify-between py-3 ">
-              <p class="text-gray-400">Diskon: </p>
-              <p class="font-bold">Rp.0</p>
-            </div>
-            <div class="font-bold flex justify-between border-t-2 border-gray-200 py-3">
-              <p>Total: </p>
-              <p>Rp.{{ totalPaymentWithPromo }}</p>
-            </div>
-            
-            
-            <div class="mt-4">
-              <Button
-                label="Checkout"
-                class="w-full p-button-primary h-16 rounded-full"
-                :loading="isLoadingPayment"
-                @click="proceedToPayment"
-              />
-            </div>  
+          <div class="text-xl font-bold text-right mt-8">
+            Total: Rp.{{ totalPaymentWithPromo }}
           </div>
-          
+          <div class="mt-4">
+            <Button
+              label="Proceed to Payment"
+              class="w-full p-button-primary"
+              :loading="isLoadingPayment"
+              @click="proceedToPayment"
+            />
+          </div>
         </div>
         <div v-else class="text-center text-gray-500">Your cart is empty.</div>
       </div>
@@ -423,8 +400,26 @@
         <p>Please wait while we prepare your product.</p>
       </div>
     </Dialog>
+
+    <!-- Floating Cart Button -->
+    <transition name="pop">
+      <button
+        v-if="cartCount > 0 && !isCartDrawerVisible"
+        @click="toggleCartDrawer"
+        class="fixed bottom-20 right-6 z-50 rounded-full shadow-lg bg-primary-300 text-white hover:bg-primary-600 transition-all duration-300 flex items-center gap-2 cart-button"
+      >
+        <span class="cart-icon-wrapper">
+          <i class="pi pi-shopping-cart text-xl" style="font-size: 1.5rem"></i>
+        </span>
+        <span class="cart-content font-bold">BAYAR</span>
+        <span
+          class="cart-count-badge absolute -top-1 -right-1 bg-red-500 text-white text-md font-bold w-8 h-6 flex items-center justify-center rounded-full shadow-md"
+        >{{ cartCount }}</span>
+      </button>
+    </transition>
   </div>
 </template>
+
 <script>
 import { ref, onMounted, computed, watch, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
@@ -438,7 +433,7 @@ export default {
     const router = useRouter();
     let wiggleInterval = null;
     let inactivityTimeout = null;
-    const inactivityDuration = 3000000;
+    const inactivityDuration = 300000;
     const toast = useToast();
     const promos = ref([]);
     const products = ref([]);
@@ -750,18 +745,18 @@ export default {
 
     const animateProductToCart = (event, product) => {
       const { clientX, clientY } = event;
-      const cartIcon = document.querySelector(".pi-shopping-cart");
+      const cartIcon = document.querySelector(".cart-button");
       if (!cartIcon) return;
       const cartRect = cartIcon.getBoundingClientRect();
       const animatingElem = document.createElement("div");
       animatingElem.className = "animating-product";
       animatingElem.style.backgroundImage = `url(${product.image})`;
       animatingElem.style.position = "fixed";
-      animatingElem.style.width = "100px";
-      animatingElem.style.height = "100px";
+      animatingElem.style.width = "50px";
+      animatingElem.style.height = "50px";
       animatingElem.style.borderRadius = "100%";
       animatingElem.style.backgroundSize = "cover";
-      animatingElem.style.left = `${clientX-20}px`;
+      animatingElem.style.left = `${clientX}px`;
       animatingElem.style.top = `${clientY}px`;
       animatingElem.style.transition = "all 1s ease-in-out";
       animatingElem.style.zIndex = "1100";

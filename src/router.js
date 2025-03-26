@@ -4,7 +4,6 @@ import Home from "./components/Home.vue";
 import Admin from "./components/Admin.vue";
 import Login from "./components/Login.vue";
 import StatusMonitor from "./components/StatusMonitor.vue";
-
 const routes = [
   {
     path: "/",
@@ -25,7 +24,7 @@ const routes = [
     path: "/status", 
     name: "Status",
     component: StatusMonitor, 
-  }
+  },
 
 ];
 

@@ -113,10 +113,10 @@
             return "Complete Shopping Transaction";
           default:
             if (code.startsWith("Q")) {
-              return entry.description || `OUT:Unknown Item (Rak ${code.slice(1)})`;
+              return entry.description || `OUT: Item Removed (Rak ${code.slice(1)})`;
             }
             if (code.startsWith("I")) {
-              return entry.description || `IN:Unknown Activity (Rak ${code.slice(1)})`;
+              return entry.description || `IN: Item Modified (Rak ${code.slice(1)})`;
             }
             return "Unknown";
         }

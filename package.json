@@ -9,11 +9,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@googleapis/docs": "^3.3.3",
     "@primevue/themes": "^4.2.5",
+    "axios": "^1.8.4",
+    "colorthief": "^2.6.0",
     "firebase": "^11.5.0",
+    "firebase-admin": "^13.2.0",
+    "firebase-functions": "^6.3.2",
     "jspdf": "^3.0.1",
+    "nodemailer": "^6.10.0",
     "primeicons": "^7.0.0",
     "primevue": "^4.2.5",
+    "sendgrid": "^5.2.3",
     "tailwindcss-primeui": "^0.4.0",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"

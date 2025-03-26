@@ -1,33 +1,31 @@
 :root {
-  /* --p-primary-50: #A7E6FF;
-  --p-primary-100: #3ABEF9;
-  --p-primary-200: #3572EF;
-  --p-primary-300: #050C9C; */
-  --p-primary-50: #3572EF;
-  --p-primary-100: #3ABEF9;
-  --p-primary-200: #3572EF;
-  --p-primary-300: #3572EF;
-  --p-primary-400: #FFE6E6;
-  --p-primary-500: #E1AFD1; /* Warna utama */
-  --p-primary-600: #AD88C6;
-  --p-primary-700: #7469B6;
-  --p-primary-800: #C40C0C;
-  --p-primary-900: #FF6500;
-  --p-primary-950: #FF8A08;
-  --p-primary-1000: #FFC100;
+  /* Primary colors - tetap sama seperti sebelumnya */
+  --p-primary-50: #E0F4FF;
+  --p-primary-100: #6CCBFF;
+  --p-primary-200: #33BFFF;
+  --p-primary-300: #8AD9D2;
+  --p-primary-400: #FFF0F0;
+  --p-primary-500: #2E5F8A;
+  --p-primary-600: #2E5F8A;
+  --p-primary-700: #8E82C8;
+  --p-primary-800: #2A2727;
+  --p-primary-900: #FF8C33;
+  --p-primary-950: #FFA033;
+  --p-primary-1000: #FFCE33;
   
-  --p-surface-0: #ffffff;
-  --p-surface-50: #f7fafc;
-  --p-surface-100: #f1f5f9;
-  --p-surface-200: #e1e8f0;
-  --p-surface-300: #cbd4e1;
-  --p-surface-400: #94a3b8;
-  --p-surface-500: #64748b;
-  --p-surface-600: #485569;
-  --p-surface-700: #334155;
-  --p-surface-800: #1e293c;
-  --p-surface-900: #0f172a;
-  --p-surface-950: #010617;
+  /* Surface colors - dominan putih, gradasi netral tanpa biru */
+  --p-surface-0: #FFFFFF;    /* Putih murni */
+  --p-surface-50: #FAFAFA;   /* Abu-abu sangat terang */
+  --p-surface-100: #F5F5F5;  /* Abu-abu terang */
+  --p-surface-200: #EEEEEE;  /* Abu-abu sedikit lebih gelap */
+  --p-surface-300: #E0E0E0;  /* Abu-abu netral */
+  --p-surface-400: #D4D4D4;  /* Abu-abu medium terang */
+  --p-surface-500: #B0B0B0;  /* Abu-abu medium */
+  --p-surface-600: #8A8A8A;  /* Abu-abu lebih dalam */
+  --p-surface-700: #666666;  /* Abu-abu gelap */
+  --p-surface-800: #444444;  /* Abu-abu sangat gelap */
+  --p-surface-900: #2A2A2A;  /* Hampir hitam */
+  --p-surface-950: #1A1A1A;  /* Gelap netral */
   --p-content-border-radius: 6px;
   --font-primary: 'Roboto', sans-serif; /* Font utama */
 }

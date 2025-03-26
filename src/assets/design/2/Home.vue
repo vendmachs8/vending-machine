@@ -1,26 +1,56 @@
 <template>
   <div class="min-h-screen bg-gray-100">
-    <div class="flex items-center justify-between px-4 my-4">
+    <!-- <div class="flex items-center justify-between px-4 my-4">
+      
       <h2 
         class="subpixel-antialiased font-semibold text-4xl px-2" 
         id="featured-products">
         Home
       </h2>
-
       <button @click="toggleMenuDrawer">
         <i class="pi pi-list text-xl"></i> 
+      </button> 
+    </div> -->
+
+    <!-- Promotion Card -->
+
+
+    <!-- Featured Products -->
+    <section class="container mx-auto">
+      <!-- Sticky Bar with Search and Sort -->
+      <!-- Sticky Bar with Search and Sort -->
+<div class="sticky top-0 z-50 pt-10 bg-gray-100">
+  <div class="relative py-2 flex flex-col ">
+    <!-- Search Input (Sticky at the top) -->
+    <div class="flex items-center justify-between px-4 gap-2 sticky top-0 z-50 bg-gray-100">
+      <IconField class="flex items-center w-full">
+        <InputText
+          ref="searchInput"
+          v-model="searchQuery"
+          placeholder="Search Products..."
+          class="search-input w-full py-3 rounded-full bg-white border border-white text-gray-800 pl-6"
+        />
+        <InputIcon
+          class="pi pi-search cursor-pointer text-gray-700 scale-100 px-2"
+        />
+      </IconField>
+      <button
+        @click="toggleCartDrawer"
+        class="w-14 h-12 flex items-center justify-center rounded-full bg-white"
+      >
+        <i class="pi pi-shopping-cart text-xl"></i>
       </button>
     </div>
 
-    <!-- Promotion Card -->
-    <div class="card">
+    <!-- Promotion Card (Disappears on scroll) -->
+    <div class="card carousel-container pt-2 pb-2 " :class="{ 'hide-on-scroll': isScrolled }">
       <Carousel
         :value="promos"
         :numVisible="1"
         :numScroll="1"
         :responsiveOptions="responsiveOptions"
         circular
-        :autoplayInterval="2000"
+        :autoplay="false"
         :showNavigators="false"
         :showIndicators="false"
       >
@@ -29,8 +59,8 @@
             <div class="relative mx-auto">
               <img
                 :src="slotProps.data.image ? slotProps.data.image : productImage"
-                :alt="slotProps.data.name"
-                class="mx-auto w-[95%] h-50 object-cover aspect-image rounded-xl"
+                :alt="slotProps.data.image"
+                class="mx-auto w-[90%] h-50 object-cover aspect-image rounded-xl"
               />
             </div>
           </div>
@@ -38,131 +68,106 @@
       </Carousel>
     </div>
 
-    <!-- Featured Products -->
-    <section class="container mx-auto">
-      <!-- Sticky Bar with Search and Sort -->
-      <div class="sticky top-0 z-50 bg-gray-100">
-        <div class="relative py-2 flex flex-col gap-4 mt-2">
-          <!-- Search Input -->
-          <div class="relative flex items-center justify-between px-4 gap-4">
-            <IconField class="flex items-center w-full">
-              <InputIcon
-                class="pi pi-search cursor-pointer text-gray-700 scale-150 px-1"
-              />
-              <InputText
-                ref="searchInput"
-                v-model="searchQuery"
-                placeholder="  Search Products..."
-                class="search-input w-full py-4 rounded-full bg-white border border-gray-300 text-gray-600"
-              />
-            </IconField>
-
-            <button
-              @click="toggleCartDrawer"
-              class="w-16 h-14 flex items-center justify-center rounded-full border border-gray-300 bg-white relative"
+    <!-- Scrollable Filter Buttons and Sort Button (Sticky below search) -->
+    <div class="filter-sort-sticky sticky z-40 bg-gray-100 px-4 py-2" :style="{ top: '80px' }">
+      <div class="flex items-center gap-3">
+        <div class="relative">
+          <button
+            @click="toggleSortOption"
+            class="sort-button mx-2"
+            :class="{ 'extended': isSortExtended }"
+          >
+            <div v-if="isSortExtended" class="flex items-center justify-between gap-2">
+              <span class="text">Urutkan</span>
+              <i class="pi pi-sort" style="font-size: 1.6rem;"></i>
+            </div>
+            <div v-else class="flex items-center">
+              <i class="pi pi-sort" style="font-size: 1.6rem;"></i>
+            </div>
+          </button>
+          <ul
+            v-if="showSortOptions"
+            class="absolute z-50 bg-white border border-gray-50 rounded-3xl shadow-lg mt-2 p-2 w-48"
+          >
+            <li
+              @click="setSortOption('priceLowToHigh')"
+              class="py-3 px-4 cursor-pointer rounded-full"
+              :class="{ 'bg-primary-200 text-white text-lg text-center': sortBy === 'priceLowToHigh' }"
             >
-              <i class="pi pi-shopping-cart text-xl"></i>
-              <span v-if="cartCount > 0"
-                class="absolute -top-1 -right-1 bg-red-500 text-white text-md font-bold w-6 h-6 flex items-center justify-center rounded-full shadow-md"
-              >{{ cartCount }}</span>
-            </button>
-          </div>
-          <!-- Scrollable Filter Buttons and Sort Button -->
-          <div class="flex items-center">
-            <div class="relative">
-              <button 
-                @click="toggleSortOption" 
-                class="sort-button mx-2"
-                :class="{ 'extended': isSortExtended }"
-              >
-                <div v-if="isSortExtended" class="flex items-center justify-between gap-2">                
-                  <span class="text">Urutkan</span>
-                  <i class="pi pi-sort" style="font-size: 1.6rem;"></i>
-                </div>
+              Harga Terendah
+            </li>
+            <li
+              @click="setSortOption('priceHighToLow')"
+              class="py-3 px-4 cursor-pointer rounded-full"
+              :class="{ 'bg-primary-200 text-white text-lg text-center': sortBy === 'priceHighToLow' }"
+            >
+              Harga Tertinggi
+            </li>
+            <li
+              @click="setSortOption('discountHighToLow')"
+              class="py-3 px-4 cursor-pointer rounded-full"
+              :class="{ 'bg-primary-200 text-white text-lg text-center': sortBy === 'discountHighToLow' }"
+            >
+              Diskon Tertinggi
+            </li>
+          </ul>
+        </div>
 
-                <div v-else class="flex items-center">
-                  <i class="pi pi-sort" style="font-size: 1.6rem;"></i>
-                </div>
-              </button>
-              <ul v-if="showSortOptions" class="absolute z-50 bg-white border border-gray-50 rounded-3xl shadow-lg mt-2 p-2 w-48">
-                <li 
-                  @click="setSortOption('priceLowToHigh')" 
-                  class="py-3 px-4 cursor-pointer rounded-full"
-                  :class="{ 'bg-primary-200 text-white text-lg text-center': sortBy === 'priceLowToHigh' }"
-                >
-                  Harga Terendah
-                </li>
-                <li 
-                  @click="setSortOption('priceHighToLow')" 
-                  class="py-3 px-4 cursor-pointer rounded-full"
-                  :class="{ 'bg-primary-200 text-white text-lg text-center': sortBy === 'priceHighToLow' }"
-                >
-                  Harga Tertinggi
-                </li>
-                <li 
-                  @click="setSortOption('discountHighToLow')" 
-                  class="py-3 px-4 cursor-pointer rounded-full"
-                  :class="{ 'bg-primary-200 text-white text-lg text-center': sortBy === 'discountHighToLow' }"
-                >
-                  Diskon Tertinggi
-                </li>
-              </ul>
-            </div>
-      
-            <div class="flex items-center gap-3 overflow-x-auto whitespace-nowrap scrollbar-hide ">
-              <button
-                @click="selectSort('all')"
-                class="flex items-center min-w-36 justify-start py-1 px-3 text-sm font-light rounded-full transition-colors"
-                :class="filter === 'all' ? 'bg-primary-200 text-white' : 'bg-white text-gray-700 hover:bg-gray-200'"
-              >
-                <img src="../assets/icon/all.png" alt="All Icon" class="w-12 h-12 -ml-2 mr-2 rounded-full bg-white" />
-                <p class="text-lg">Semua</p>
-              </button>
-              <button
-                @click="selectSort('drink')"
-                class="flex items-center min-w-36 justify-start py-1 px-3 text-sm font-light rounded-full transition-colors"
-                :class="filter === 'drink' ? 'bg-primary-200 text-white' : 'bg-white text-gray-700 hover:bg-gray-200'"
-              >
-                <img src="../assets/icon/drink.png" alt="Drink Icon" class="w-12 h-12 -ml-2 mr-2 rounded-full bg-white" />
-                <p class="text-lg">Minuman</p>
-              </button>
-              <button
-                @click="selectSort('food')"
-                class="flex items-center min-w-36 justify-start py-1 px-3 text-sm font-light rounded-full transition-colors"
-                :class="filter === 'food' ? 'bg-primary-200 text-white' : 'bg-white text-gray-700 hover:bg-gray-200'"
-              >
-                <img src="../assets/icon/food.png" alt="Food Icon" class="w-12 h-12 -ml-2 mr-2 rounded-full bg-white" />
-                <p class="text-lg">Makanan</p>
-              </button>
-
-              <!-- Dummy Buttons -->
-              <button
-                class="flex items-center justify-center py-2 px-4 text-sm font-medium rounded-md transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200 min-w-[80px]"
-              >
-                Tombol 1
-              </button>
-              <button
-                class="flex items-center justify-center py-2 px-4 text-sm font-medium rounded-md transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200 min-w-[80px]"
-              >
-                Tombol 2
-              </button>
-              <button
-                class="flex items-center justify-center py-2 px-4 text-sm font-medium rounded-md transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200 min-w-[80px]"
-              >
-                Tombol 3
-              </button>
-            </div>
-          </div>
+        <div class="flex items-center gap-3 overflow-x-auto whitespace-nowrap scrollbar-hide">
+          <button
+            @click="selectSort('all')"
+            class="flex items-center min-w-36 justify-start py-1 px-3 text-sm font-light rounded-full transition-colors"
+            :class="filter === 'all' ? 'bg-primary-200 text-white' : 'bg-white text-gray-700 hover:bg-gray-200'"
+          >
+            <img src="../assets/icon/all.png" alt="All Icon" class="w-12 h-12 -ml-2 mr-2 rounded-full bg-white" />
+            <p class="text-lg">Semua</p>
+          </button>
+          <button
+            @click="selectSort('drink')"
+            class="flex items-center min-w-36 justify-start py-1 px-3 text-sm font-light rounded-full transition-colors"
+            :class="filter === 'drink' ? 'bg-primary-200 text-white' : 'bg-white text-gray-700 hover:bg-gray-200'"
+          >
+            <img src="../assets/icon/drink.png" alt="Drink Icon" class="w-12 h-12 -ml-2 mr-2 rounded-full bg-white" />
+            <p class="text-lg">Minuman</p>
+          </button>
+          <button
+            @click="selectSort('food')"
+            class="flex items-center min-w-36 justify-start py-1 px-3 text-sm font-light rounded-full transition-colors"
+            :class="filter === 'food' ? 'bg-primary-200 text-white' : 'bg-white text-gray-700 hover:bg-gray-200'"
+          >
+            <img src="../assets/icon/food.png" alt="Food Icon" class="w-12 h-12 -ml-2 mr-2 rounded-full bg-white" />
+            <p class="text-lg">Makanan</p>
+          </button>
+          <!-- Dummy Buttons -->
+          <button
+            class="flex items-center justify-center py-2 px-4 text-sm font-medium rounded-md transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200 min-w-[80px]"
+          >
+            Tombol 1
+          </button>
+          <button
+            class="flex items-center justify-center py-2 px-4 text-sm font-medium rounded-md transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200 min-w-[80px]"
+          >
+            Tombol 2
+          </button>
+          <button
+            class="flex items-center justify-center py-2 px-4 text-sm font-medium rounded-md transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200 min-w-[80px]"
+          >
+            Tombol 3
+          </button>
         </div>
       </div>
-
+    </div>
+  </div>
+</div>
+      
+      
       <!-- Product Grid -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 mt-2">
         <div
           v-for="product in filteredProducts"
           :key="product.id"
           :class="[
-            'bg-white relative shadow-grey-500 border-2xl rounded-2xl p-2 flex flex-col max-h-max rainbow-spots',
+            'bg-white relative shadow-grey-500 border-2xl rounded-2xl  flex flex-col h-60 rainbow-spots',
             { 'opacity-30 shadow-2xl': getAvailableStock(product) === 0 }
           ]"
           @click="openDrawer(product)"
@@ -174,37 +179,31 @@
             <img
               :src="product.image"
               alt="product.name"
-              class="transition ease-in-out delay-150 hover:-translate-y-2 hover:scale-125 duration-300 w-38 h-44 object-cover rounded-full mb-2"
+              class="transition ease-in-out delay-150 hover:-translate-y-2 hover:scale-125 duration-300 w-38 h-48 object-cover rounded-full mb-2"
             />
           </div>
           
-          <Tag
-            :value="product.inventoryStatus"
-            :severity="getSeverity(product.inventoryStatus)"
-            class="rounded-xl -ml-3 mr-auto justify-start px-4"
-            style="border-radius: 0 8px 8px 0"
-          />
-
-          <h3 class="text-lg mt-2">{{ product.name }}</h3>
-          <div class="flex justify-between items-center mt-2 text-xl">
-            <div class="price-container">
-              <p v-if="product.discount > 0" class="text-red-600 font-bold">Rp{{ getDiscountedPrice(product) }}</p>
-              <p v-if="product.discount > 0" class="text-gray-300 line-through">Rp{{ product.price }}</p>
-              <p v-else class="text-gray-600 font-bold md-4">Rp{{ product.price }}</p>
-            </div>
-            <div>
-              <button
-                :disabled="getAvailableStock(product) === 0"
-                class="text-white px-2 py-1 rounded-xl transition text-sm"
-                :class="{
-                  'bg-gray-400 cursor-not-allowed': getAvailableStock(product) === 0,
-                  'bg-green-400': getAvailableStock(product) > 0
-                }"
-                @click.stop="(event) => { animateProductToCart(event, product); addToCart(product); }"
-              >
-                <i v-if="getAvailableStock(product) > 0" class="pi pi-plus"></i>
-                <i v-if="getAvailableStock(product) === 0" class="pi pi-times"></i>
-              </button>
+          <div class="flex flex-col items-center justify-center absolute bottom-0 rounded-3xl backdrop-blur-sm bg-black/30 w-full h-16">
+            <h3 class="text-lg items-center justify-center text-white">{{ product.name }}</h3>
+            <div class="flex items-center text-xl">
+              <div class="price-container">
+                <p v-if="product.discount > 0" class="text-red-500 font-bold">Rp{{ getDiscountedPrice(product) }}</p>
+                <p v-else class="text-white font-bold md-4">Rp{{ product.price }}</p>
+              </div>
+              <div>
+                <!-- <button
+                  :disabled="getAvailableStock(product) === 0"
+                  class="text-white px-2 py-1 rounded-xl transition text-sm"
+                  :class="{
+                    'bg-gray-400 cursor-not-allowed': getAvailableStock(product) === 0,
+                    'bg-green-400': getAvailableStock(product) > 0
+                  }"
+                  @click.stop="(event) => { animateProductToCart(event, product); addToCart(product); }"
+                >
+                  <i v-if="getAvailableStock(product) > 0" class="pi pi-plus"></i>
+                  <i v-if="getAvailableStock(product) === 0" class="pi pi-times"></i>
+                </button> -->
+              </div>
             </div>
           </div>
         </div>
@@ -291,80 +290,59 @@
     <Drawer
       v-model:visible="isCartDrawerVisible"
       position="bottom"
-      style="overflow-y: auto; max-height: 75%; height: auto;"
+      style="height: auto; overflow-y: auto"
     >
-      <template #header> 
-        <div class="text-2xl font-bold">Cart</div>
+      <template #header>
+        <div class="text-2xl font-bold">Your Cart</div>
       </template>
-      <div class="p-0">
-        <div v-if="cartItems.length > 0"  >
+      <div class="p-4">
+        <div v-if="cartItems.length > 0">
           <div
             v-for="(item, index) in cartItems"
             :key="index"
-            class="flex items-center justify-between bg-white max-h-24 w-full rounded-xl overscroll-auto my-3"
+            class="flex items-center justify-between mb-4"
           >
             <img
               :src="item.product.image"
               alt="product.name"
-              class="w-24 h-24 object-cover rounded-md "
+              class="w-12 h-12 object-cover rounded-md"
             />
-            <div class="grid grid-flow-row min-w-24 max-w-24 items-center">
-              <span class="text-left mx-2">{{ item.product.name }}</span>
-              <div class="grid grid-flow-col">
-                <p class="text-left ml-2 text-gray-400">Rak  :</p>
-                <p class="text-left mr-8">{{ item.product.rak }}</p>
-              </div>
-              
+            <div class="flex flex-col">
+              <span class="font-medium">{{ item.product.name }}</span>
+              <span class="text-sm text-gray-500">Qty: {{ item.quantity }}</span>
             </div>
             <div class="flex items-center gap-2">
               <button
-                class="px-1 py-0 bg-white border border-gray-300 rounded-full"
+                class="px-2 py-1 bg-red-500 rounded-full"
                 @click="decreaseQuantity(item)"
               >
                 <i class="pi pi-minus" />
               </button>
-              <span v-if="item.quantity < 10">{{ `0${item.quantity}` }}</span>
-              <span v-else>{{ item.quantity }}</span>
               <button
-                class="px-1 py-0 bg-primary-200 rounded-full"
+                class="px-2 py-1 bg-blue-500 rounded-full"
                 :disabled="getAvailableStock(item.product) <= 0"
                 @click="increaseQuantity(item)"
               >
                 <i class="pi pi-plus" />
               </button>
             </div>
-            <div class="ml-3 mr-2 text-right">
+            <div class="text-right">
               <span v-if="item.product.discount > 0" class="font-bold text-red-600">Rp{{ getDiscountedPrice(item.product) * item.quantity }}</span>
               <span v-if="item.product.discount > 0" class="block text-gray-500 line-through text-sm">Rp{{ item.product.price * item.quantity }}</span>
               <span v-else class="font-bold">Rp{{ item.product.price * item.quantity }}</span>
             </div>
           </div>
-
-          <div class="sticky -bottom-5 z-50 bg-surface-100 py-4">
-            <div class="flex justify-between py-3 ">
-              <p class="text-gray-400">Sub-total: </p>              
-              <p class="font-bold">Rp.{{ totalPaymentWithPromo }}</p>
-            </div>
-            <div class="flex justify-between py-3 ">
-              <p class="text-gray-400">Diskon: </p>
-              <p class="font-bold">Rp.0</p>
-            </div>
-            <div class="font-bold flex justify-between border-t-2 border-gray-200 py-3">
-              <p>Total: </p>
-              <p>Rp.{{ totalPaymentWithPromo }}</p>
-            </div>
-            
-            
-            <div class="mt-4">
-              <Button
-                label="Checkout"
-                class="w-full p-button-primary h-16 rounded-full"
-                :loading="isLoadingPayment"
-                @click="proceedToPayment"
-              />
-            </div>  
+          <div class="text-xl font-bold text-right mt-8">
+            Total: Rp.{{ totalPaymentWithPromo }}
           </div>
-          
+          <div class="mt-4">
+            <Button
+              label="Proceed to Payment"
+              class="w-full p-button-primary"
+              :loading="isLoadingPayment"
+              @click="proceedToPayment"
+            />
+          </div>
         </div>
         <div v-else class="text-center text-gray-500">Your cart is empty.</div>
       </div>
@@ -423,8 +401,26 @@
         <p>Please wait while we prepare your product.</p>
       </div>
     </Dialog>
+
+    <!-- Floating Cart Button -->
+    <transition name="pop">
+      <button
+        v-if="cartCount > 0 && !isCartDrawerVisible"
+        @click="toggleCartDrawer"
+        class="fixed bottom-20 right-6 z-50 rounded-full shadow-lg bg-primary-300 text-white hover:bg-primary-600 transition-all duration-300 flex items-center gap-2 cart-button"
+      >
+        <span class="cart-icon-wrapper">
+          <i class="pi pi-shopping-cart text-xl" style="font-size: 1.5rem"></i>
+        </span>
+        <span class="cart-content font-bold">BAYAR</span>
+        <span
+          class="cart-count-badge absolute -top-1 -right-1 bg-red-500 text-white text-md font-bold w-8 h-6 flex items-center justify-center rounded-full shadow-md"
+        >{{ cartCount }}</span>
+      </button>
+    </transition>
   </div>
 </template>
+
 <script>
 import { ref, onMounted, computed, watch, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
@@ -438,7 +434,7 @@ export default {
     const router = useRouter();
     let wiggleInterval = null;
     let inactivityTimeout = null;
-    const inactivityDuration = 3000000;
+    const inactivityDuration = 300000;
     const toast = useToast();
     const promos = ref([]);
     const products = ref([]);
@@ -462,6 +458,12 @@ export default {
     const promoCode = ref("");
     const promoDiscount = ref(0);
     const isMenuDrawerVisible = ref(false);
+
+    const isScrolled = ref(false); 
+
+    const handleScroll  = () => {
+      isScrolled.value = window.scrollY > 50; 
+    };
 
     const showSortOptions = ref(false);
     const sortBy = ref('default');
@@ -750,18 +752,18 @@ export default {
 
     const animateProductToCart = (event, product) => {
       const { clientX, clientY } = event;
-      const cartIcon = document.querySelector(".pi-shopping-cart");
+      const cartIcon = document.querySelector(".cart-button");
       if (!cartIcon) return;
       const cartRect = cartIcon.getBoundingClientRect();
       const animatingElem = document.createElement("div");
       animatingElem.className = "animating-product";
       animatingElem.style.backgroundImage = `url(${product.image})`;
       animatingElem.style.position = "fixed";
-      animatingElem.style.width = "100px";
-      animatingElem.style.height = "100px";
+      animatingElem.style.width = "50px";
+      animatingElem.style.height = "50px";
       animatingElem.style.borderRadius = "100%";
       animatingElem.style.backgroundSize = "cover";
-      animatingElem.style.left = `${clientX-20}px`;
+      animatingElem.style.left = `${clientX}px`;
       animatingElem.style.top = `${clientY}px`;
       animatingElem.style.transition = "all 1s ease-in-out";
       animatingElem.style.zIndex = "1100";
@@ -941,6 +943,7 @@ export default {
       window.addEventListener("click", handleUserActivity);
       window.addEventListener("keydown", handleUserActivity);
       window.addEventListener("scroll", handleUserActivity);
+      window.addEventListener("scroll", handleScroll); 
       if (cartCount.value > 0) startWiggleAnimation();
     });
 
@@ -950,9 +953,11 @@ export default {
       window.removeEventListener("click", handleUserActivity);
       window.removeEventListener("keydown", handleUserActivity);
       window.removeEventListener("scroll", handleUserActivity);
+      window.addEventListener("scroll", handleScroll); 
     });
 
     return {
+      isScrolled, 
       isSortExtended,
       showSortOptions,
       sortBy,
@@ -1010,6 +1015,38 @@ export default {
   z-index: 1100;
   pointer-events: none;
 }
+
+/* ... (previous styles remain unchanged) */
+
+/* Sticky filter and sort bar */
+.filter-sort-sticky {
+  position: sticky;
+  top: 80px; /* Adjust this value based on the height of your search bar */
+  z-index: 40;
+  background-color: #f3f4f6; /* Matches bg-gray-100 */
+  padding: 0.5rem 1rem;
+}
+
+/* Carousel hide on scroll */
+.carousel-container {
+  transition: opacity 0.3s ease, height 0.3s ease;
+  opacity: 1;
+  height: auto;
+}
+
+.carousel-container.hide-on-scroll {
+  opacity: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* Ensure search bar stays sticky at the top */
+.sticky.top-0 {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
 
 .cart-button {
   padding: 0.75rem 1rem;

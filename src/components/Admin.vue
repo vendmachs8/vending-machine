@@ -121,7 +121,7 @@
             style="border-radius: 0 10px 10px 0"
           />
           <h3 class="text-lg font-medium mt-2">{{ product.name }}</h3>
-          <p class="text-sm text-gray-500 mt-1">{{ product.desc }}</p>
+          <p class="text-sm text-gray-500 mt-1">{{ truncateDescription(product.desc) }}</p>
           <p class="text-sm text-gray-500 mt-1">No.{{ product.rak }} | Stok : {{ product.stock }}</p>
           <div class="flex justify-between items-center mt-2">
             <div>
@@ -130,7 +130,7 @@
               <p v-else class="text-gray-600 font-bold">Rp{{ product.price }}</p>
             </div>
             <div class="justify-end">
-              <button class="text-primary px-2 py-1 rounded-xl" @click.stop="editProduct(product)">
+              <button class="text-black px-2 py-1 rounded-xl" @click.stop="editProduct(product)">
                 <i class="pi pi-pencil"></i>
               </button>
               <button class="text-red-500 px-2 py-1 rounded-xl" @click.stop="deleteProduct(product)">
@@ -147,7 +147,19 @@
       <div class="p-4">
         <div class="mb-3">
           <label for="productImage" class="block text-sm font-medium mb-1">Product Image</label>
-          <FileUpload id="productImage" @select="onFileChange" accept="image/*" class="w-full" mode="basic" />
+          <!-- Tampilkan gambar yang sudah ada -->
+          <div v-if="selectedProduct?.image" class="mb-2">
+            <img :src="selectedProduct.image" alt="Current Product Image" class="w-32 h-32 object-cover rounded-md" />
+            <p class="text-sm text-gray-500">Current Image</p>
+          </div>
+          <FileUpload 
+            id="productImage" 
+            @select="onFileChange" 
+            accept="image/*" 
+            class="w-full" 
+            mode="basic" 
+            :chooseLabel="selectedProduct?.image ? 'Change Image' : 'Choose Image'"
+          />
         </div>
         <div class="mb-3">
           <label for="productName" class="block text-sm font-medium mb-1">Product Name</label>
@@ -235,10 +247,15 @@
     <!-- Receipts Dialog -->
     <Dialog v-model:visible="isReceiptsDialogVisible" header="Transaction Receipts" modal class="w-[90%] lg:w-[50%]">
       <div class="p-4">
-        <div class="flex justify-end mb-4">
+        <div class="flex justify-between mb-4">
+          <Button
+            :label="sortOrder === 'desc' ? 'Sort: Newest First' : 'Sort: Oldest First'"
+            class="p-button-secondary"
+            @click="toggleSortOrder"
+          />
           <Button label="Delete All Receipts" class="p-button-danger" @click="deleteAllReceipts" :disabled="receipts.length === 0" />
         </div>
-        <div v-if="receipts.length > 0" class="overflow-x-auto">
+        <div v-if="sortedReceipts.length > 0" class="overflow-x-auto">
           <table class="w-full text-sm text-left text-gray-500">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50">
               <tr>
@@ -250,7 +267,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="receipt in receipts" :key="receipt.id" class="bg-white border-b">
+              <tr v-for="receipt in sortedReceipts" :key="receipt.id" class="bg-white border-b">
                 <td class="px-2 py-2">{{ new Date(receipt.timestamp).toLocaleString() }}</td>
                 <td class="px-2 py-2">
                   <ul>
@@ -403,6 +420,26 @@ export default {
     const promoDiscount = ref(0);
     const isReceiptsDialogVisible = ref(false);
     const receipts = ref([]);
+    const sortOrder = ref("desc");
+
+    const truncateDescription = (desc, maxLength = 50) => {
+      if (desc.length <= maxLength) return desc;
+      return desc.substring(0, maxLength).trim() + "...";
+    };
+
+    const sortedReceipts = computed(() => {
+      const sorted = [...receipts.value]; // Salin array agar tidak mutasi asli
+      sorted.sort((a, b) => {
+        const dateA = new Date(a.timestamp);
+        const dateB = new Date(b.timestamp);
+        return sortOrder.value === "desc" ? dateB - dateA : dateA - dateB;
+      });
+      return sorted;
+    });
+
+    const toggleSortOrder = () => {
+      sortOrder.value = sortOrder.value === "desc" ? "asc" : "desc";
+    };
 
     // Fungsi untuk mencatat aktivitas ke Firebase
     const logActivity = async (activityCode, description = null) => {
@@ -432,6 +469,7 @@ export default {
             await update(userRef, { status: "S003" });
             await push(statusChangeRef, { status: "S003", timestamp: new Date().toISOString() });
           }
+          logActivity("S003");
         } catch (error) {
           console.error("Error updating status to S003:", error);
           toast.add({ severity: "error", summary: "Error", detail: "Failed to update status to Online-Setup.", life: 3000 });
@@ -449,7 +487,7 @@ export default {
             await update(userRef, { status: "S001" });
             await push(statusChangeRef, { status: "S001", timestamp: new Date().toISOString() });
           }
-          router.push({ path: "/" });
+          router.push("/");
         } catch (error) {
           console.error("Error updating status to S001:", error);
           toast.add({ severity: "error", summary: "Error", detail: "Failed to update status.", life: 3000 });
@@ -470,23 +508,95 @@ export default {
       { breakpoint: "575px", numVisible: 1, numScroll: 1 },
     ]);
 
-    const downloadReceiptAsPDF = (receipt) => {
-      const doc = new jsPDF();
-      doc.setFontSize(16);
-      doc.text("Transaction Receipt", 10, 10);
-      doc.setFontSize(12);
-      doc.text(`Time: ${new Date(receipt.timestamp).toLocaleString()}`, 10, 20);
-      doc.text("Items:", 10, 30);
-      doc.setFontSize(10);
-      let yPosition = 40;
-      receipt.items.forEach((item) => {
-        const itemText = `${item.name} (ID: ${item.id}) - Qty: ${item.quantity}, Price: Rp${item.price}, Total: Rp${item.totalPrice}, Rak: ${item.rak}, Disc: ${item.discount}%`;
-        doc.text(itemText, 10, yPosition);
+    const downloadReceiptAsPDF = async (receipt) => {
+      try {
+        console.log("Starting PDF generation for receipt:", receipt);
+
+        const doc = new jsPDF();
+        console.log("jsPDF instance created");
+
+        // Slide 1: Detail Transaksi
+        doc.setFontSize(16);
+        doc.text("Studio 8 Workshop", 10, 10);
+        doc.setFontSize(12);
+        doc.text("Jl. Tombro Tengah No.4", 10, 20);
+        doc.text("Kota Malang", 10, 30);
+        doc.setFontSize(16);
+        doc.text("R E C E I P T", 160, 40);
+
+        doc.setFontSize(12);
+        doc.text("Location: Universitas Brawijaya", 10, 50);
+        doc.text(`Receipt# : ${receipt.id}`, 120, 50);
+        doc.text(`R. Date  : ${new Date(receipt.timestamp).toLocaleDateString()}`, 120, 60);
+        doc.text(`R. Time  : ${new Date(receipt.timestamp).toLocaleTimeString()}`, 120, 70);
+        doc.text(`IDVM     : ${loggedInUser.value}`, 120, 80);
+
+        doc.text("----------------------------------------------------------------------------------------------------------------------------------------", 10, 96);
+        doc.text("QTY", 10, 100); // Kolom QTY
+        doc.text("Description", 25, 100); // Kolom Description
+        doc.text("Unit Price", 120, 100); // Kolom Unit Price
+        doc.text("Amount", 170, 100); // Kolom Amount
+        doc.text("----------------------------------------------------------------------------------------------------------------------------------------", 10, 104);
+
+        let yPosition = 114;
+        receipt.items.forEach((item) => {
+          const qty = `${item.quantity}`;
+          const description = `[${item.rak}]${item.name}`;
+          const unitPrice = `Rp${item.price}`;
+          const amount = `Rp${item.totalPrice}`;
+
+          // Gunakan koordinat X tetap untuk setiap kolom
+          doc.text(qty, 10, yPosition); // Kolom QTY pada X=10
+          doc.text(description, 25, yPosition, { maxWidth: 90 }); // Kolom Description pada X=25, batasi lebar 90
+          doc.text(unitPrice, 120, yPosition); // Kolom Unit Price pada X=120
+          doc.text(amount, 170, yPosition); // Kolom Amount pada X=170
+
+          yPosition += 10;
+        });
+
+        doc.text("----------------------------------------------------------------------------------------------------------------------------------------", 10, yPosition);
         yPosition += 10;
-      });
-      doc.text(`Grand Total: Rp${receipt.grandTotal}`, 10, yPosition + 10);
-      doc.text(`Voucher: ${receipt.usedVoucher ? `Yes (${receipt.voucherDiscount}%)` : "No"}`, 10, yPosition + 20);
-      doc.save(`receipt_${receipt.id}_${new Date(receipt.timestamp).toISOString().split("T")[0]}.pdf`);
+        doc.text(`subtotal:                Rp${receipt.grandTotal + (receipt.voucherDiscount || 0)}`, 135, yPosition);
+        yPosition += 10;
+        doc.text(`diskon:                  Rp${receipt.voucherDiscount || 0}`, 135, yPosition);
+        yPosition += 10;
+        doc.text("----------------------------------------------", 135, yPosition);
+        yPosition += 10;
+        doc.text(`Total (IDR):             Rp${receipt.grandTotal}`, 135, yPosition);
+        yPosition += 10;
+        doc.text("----------------------------------------------------------------------------------------------------------------------------------------", 10, yPosition);
+        yPosition += 10;
+
+        // const machineStatus = receipt.items.some(item => item.stock === 0) ? "NOT OK" : "OK";
+        const machineStatus = products.value.some(p => p.stock === 0) ? "NOT OK" : "OK";
+        doc.text(`Status Machine = ${machineStatus}`, 10, yPosition);
+
+        // Slide 2: Bukti Pembayaran
+        doc.addPage();
+        doc.setFontSize(16);
+        doc.text("Bukti Pembayaran", 10, 10);
+        // doc.addImage(receipt.paymentProof, 'PNG', 10, 20, 180, 180); // Uncomment jika ada data gambar
+
+        // Simpan PDF
+        const fileName = `receipt_${receipt.id}_${new Date(receipt.timestamp).toISOString().split("T")[0]}.pdf`;
+        doc.save(fileName);
+        console.log("PDF saved with filename:", fileName);
+
+        toast.add({
+          severity: "success",
+          summary: "PDF Downloaded",
+          detail: `Receipt ${receipt.id} has been downloaded successfully.`,
+          life: 3000
+        });
+      } catch (error) {
+        console.error("Error generating PDF:", error);
+        toast.add({
+          severity: "error",
+          summary: "Download Failed",
+          detail: `Failed to download receipt: ${error.message}`,
+          life: 5000
+        });
+      }
     };
 
     const validPromoCodes = { "DISKON10": 10, "DISKON20": 20, "FREESHIP": 15 };
@@ -521,82 +631,99 @@ export default {
 
     const editProduct = (product) => {
       selectedProduct.value = { ...product };
+      files.value = []; 
+      imageUrl.value = null; 
       isEditDialogVisible.value = true;
     };
 
     const onFileChange = (event) => {
       files.value = event.files;
+      if (files.value.length > 0) {
+        const file = files.value[0]; 
+        imageUrl.value = URL.createObjectURL(file); 
+      } else {
+        imageUrl.value = null; 
+      }
     };
 
     const saveProduct = async () => {
       loading.value = true;
-      if (selectedProduct.value && selectedProduct.value.id) {
-        const productId = selectedProduct.value.id;
-        const productRef = dbRef(db, `products/${productId}`);
+      if (!selectedProduct.value || !selectedProduct.value.id) {
+        toast.add({  life: 3000, severity: "error", summary: "Error", detail: "No product selected.", group: "tr" });
+        loading.value = false;
+        return;
+      }
 
-        if (files.value.length > 0) {
-          const file = files.value[0];
-          const storage = getStorage();
-          const storageRef = storRef(storage, `products/${file.name}`);
-          try {
-            const snapshot = await uploadBytes(storageRef, file);
-            imageUrl.value = await getDownloadURL(snapshot.ref);
-          } catch (error) {
-            console.error("Error uploading file:", error);
-            toast.add({ severity: "error", summary: "Upload Error", detail: "Failed to upload image.", group: "tr" });
-            loading.value = false;
-            return;
-          }
-        }
+      const productId = selectedProduct.value.id;
+      const productRef = dbRef(db, `products/${productId}`);
+      let imageToUpdate = selectedProduct.value.image; // Default ke gambar lama
 
-        const imageToUpdate = imageUrl.value || selectedProduct.value.image;
-        const updatedStock = selectedProduct.value.stock;
-        const updatedInventoryStatus = determineInventoryStatus(updatedStock);
-
-        // Tentukan kode aktivitas berdasarkan nomor rak
-        const rakNumber = String(selectedProduct.value.rak).padStart(3, "0");
-        const activityCode = `I${rakNumber}`; // Misal rak 15 jadi "I015"
-
-        // Tentukan perubahan apa yang terjadi untuk log
-        const originalProduct = products.value.find(p => p.id === productId);
-        let changes = [];
-        if (originalProduct.name !== selectedProduct.value.name) changes.push("Name");
-        if (originalProduct.desc !== selectedProduct.value.desc) changes.push("Description");
-        if (originalProduct.price !== selectedProduct.value.price) changes.push("Price");
-        if (originalProduct.discount !== selectedProduct.value.discount) changes.push("Discount");
-        if (originalProduct.rak !== selectedProduct.value.rak) changes.push("Rak");
-        if (originalProduct.stock !== selectedProduct.value.stock) changes.push("Stock");
-        if (imageUrl.value) changes.push("Image");
-
+      // Proses upload gambar baru jika ada
+      if (files.value.length > 0) {
+        const file = files.value[0];
+        const storage = getStorage();
+        const storageRef = storRef(storage, `products/${file.name}`);
         try {
-          await update(productRef, {
-            name: selectedProduct.value.name,
-            desc: selectedProduct.value.desc,
-            price: selectedProduct.value.price,
-            discount: selectedProduct.value.discount || 0,
-            stock: updatedStock,
-            image: imageToUpdate,
-            rak: selectedProduct.value.rak,
-            inventoryStatus: updatedInventoryStatus,
-          });
-
-          // Log aktivitas IXXX untuk edit barang
-          const description = `IN:Updated Item - ${selectedProduct.value.name} (${changes.join(", ")})`;
-          await logActivity(activityCode, description);
-
-          toast.add({
-            severity: "success",
-            summary: "Product updated",
-            detail: `${selectedProduct.value.name} has been updated. Stock status: ${updatedInventoryStatus}`,
-            group: "tr",
-          });
-          isEditDialogVisible.value = false;
+          const snapshot = await uploadBytes(storageRef, file);
+          imageUrl.value = await getDownloadURL(snapshot.ref);
+          imageToUpdate = imageUrl.value; // Gunakan URL gambar baru
+          console.log("File uploaded, URL:", imageToUpdate);
         } catch (error) {
-          console.error("Error updating product:", error);
-          toast.add({ severity: "error", summary: "Error", detail: `Failed to update ${selectedProduct.value.name}. ${error.message}`, group: "tr", life: 3000 });
+          console.error("Error uploading file:", error);
+          toast.add({  life: 3000, severity: "error", summary: "Upload Error", detail: "Failed to upload image.", group: "tr" });
+          loading.value = false;
+          return; // Hentikan eksekusi jika upload gagal
         }
       }
-      loading.value = false;
+
+      // Tentukan status inventaris berdasarkan stok
+      const updatedStock = selectedProduct.value.stock;
+      const updatedInventoryStatus = determineInventoryStatus(updatedStock);
+
+      // Log perubahan untuk aktivitas
+      const originalProduct = products.value.find(p => p.id === productId);
+      let changes = [];
+      if (originalProduct.name !== selectedProduct.value.name) changes.push("Name");
+      if (originalProduct.desc !== selectedProduct.value.desc) changes.push("Description");
+      if (originalProduct.price !== selectedProduct.value.price) changes.push("Price");
+      if (originalProduct.discount !== selectedProduct.value.discount) changes.push("Discount");
+      if (originalProduct.rak !== selectedProduct.value.rak) changes.push("Rak");
+      if (originalProduct.stock !== selectedProduct.value.stock) changes.push("Stock");
+      if (imageToUpdate !== selectedProduct.value.image) changes.push("Image");
+
+      try {
+        // Update data produk di Firebase
+        await update(productRef, {
+          name: selectedProduct.value.name,
+          desc: selectedProduct.value.desc,
+          price: selectedProduct.value.price,
+          discount: selectedProduct.value.discount || 0,
+          stock: updatedStock,
+          image: imageToUpdate,
+          rak: selectedProduct.value.rak,
+          inventoryStatus: updatedInventoryStatus,
+        });
+
+        // Log aktivitas
+        const rakNumber = String(selectedProduct.value.rak).padStart(3, "0");
+        const activityCode = `I${rakNumber}`;
+        const description = `IN:Updated Item - ${selectedProduct.value.name} (${changes.join(", ")})`;
+        await logActivity(activityCode, description);
+
+        toast.add({
+          severity: "success",
+          summary: "Product updated",
+          detail: `${selectedProduct.value.name} has been updated. Stock status: ${updatedInventoryStatus}`,
+          group: "tr",
+          life: 3000, 
+        });
+        isEditDialogVisible.value = false;
+      } catch (error) {
+        console.error("Error updating product:", error);
+        toast.add({ severity: "error", summary: "Error", detail: `Failed to update ${selectedProduct.value.name}. ${error.message}`, group: "tr", life: 3000 });
+      } finally {
+        loading.value = false;
+      }
     };
 
     const cancelEdit = () => {
@@ -709,13 +836,13 @@ export default {
             const description = `IN:Deleted Item - ${product.name}`;
             await logActivity(activityCode, description);
 
-            toast.add({ severity: "success", summary: "Product deleted", detail: `${product.name} has been removed.`, group: "tr" });
+            toast.add({ life: 3000, severity: "success", summary: "Product deleted", detail: `${product.name} has been removed.`, group: "tr" });
           } catch (error) {
-            toast.add({ severity: "error", summary: "Error", detail: `Failed to delete ${product.name}. ${error.message}`, group: "tr", life: 3000 });
+            toast.add({ life: 3000,  severity: "error", summary: "Error", detail: `Failed to delete ${product.name}. ${error.message}`, group: "tr", life: 3000 });
           }
         },
         reject: () => {
-          toast.add({ severity: "error", summary: "Canceled", detail: "You have rejected to delete", life: 3000, group: "tr" });
+          toast.add({ life: 3000,  severity: "error", summary: "Canceled", detail: "You have rejected to delete", life: 3000, group: "tr" });
         },
       });
     };
@@ -904,6 +1031,7 @@ export default {
     });
 
     return {
+      truncateDescription, 
       loggedInUser,
       goToLogin,
       goToRun,
@@ -953,6 +1081,9 @@ export default {
       openReceiptsDialog,
       deleteReceipt,
       deleteAllReceipts,
+      sortOrder,
+      sortedReceipts,
+      toggleSortOrder,
     };
   },
 };

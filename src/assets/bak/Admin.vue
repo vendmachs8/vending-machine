@@ -1,15 +1,35 @@
+
+
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- Header -->
-    <header class="w-full">
+    <header class="w-full relative">
       <div class="pt-3 px-8 text-sm text-gray-500">
+        <p v-if="loggedInUser" class="text-lg font-semibold text-gray-700 mb-1">
+          Hai {{ loggedInUser }}
+        </p>
         <p>
           <i class="pi pi-map-marker mr-1" style="font-size: smaller"></i>Lokasi
           : Universitas Brawijaya
         </p>
       </div>
+
+      <div class="absolute top-3 right-8 flex gap-2">
+        <button
+          @click="goToRun"
+          class="text-white bg-green-500 hover:bg-green-600 px-4 py-2 rounded-md transition"
+        >
+          Run
+        </button>
+        <button
+          @click="goToLogin"
+          class="text-white bg-primary-500 hover:bg-primary-600 px-4 py-2 rounded-md transition"
+        >
+          Login
+        </button>
+      </div>
+
       <div class="pb-4 pt-2 flex items-center justify-center">
-        <!-- Search Bar -->
         <div class="flex items-center mx-auto gap-4">
           <IconField>
             <InputIcon class="pi pi-search" />
@@ -19,7 +39,6 @@
               class="w-[16rem] md:w-[44rem]"
             />
           </IconField>
-
           <button class="mt-3" @click="toggleCartDrawer">
             <OverlayBadge :value="cartCount" v-if="cartCount > 0">
               <i class="pi pi-shopping-cart" style="font-size: 1.75rem" />
@@ -40,14 +59,10 @@
         :autoplayInterval="1000"
       >
         <template #item="slotProps">
-          <div
-            class="border border-surface-200 dark:border-surface-700 rounded-2xl"
-          >
+          <div class="border border-surface-200 dark:border-surface-700 rounded-2xl">
             <div class="relative mx-auto">
               <img
-                :src="
-                  slotProps.data.image ? slotProps.data.image : productImage
-                "
+                :src="slotProps.data.image ? slotProps.data.image : productImage"
                 :alt="slotProps.data.name"
                 class="w-full h-40 object-cover rounded-2xl"
               />
@@ -57,73 +72,39 @@
       </Carousel>
     </div>
 
-    <!-- Categories (Items) -->
-    <!-- <section class="container mx-auto px-4 py-6">
-        <h2 class="text-xl font-semibold mb-4">Items</h2>
-        <div class="flex overflow-x-auto gap-4 scrollbar-hidden">
-          <div
-            v-for="product in products"
-            :key="product.id"
-            class="border border-surface-200 dark:border-surface-700 bg-white rounded-2xl p-4 hover:shadow-lg transition flex-shrink-0"
-          >
-            <img
-              :src="product.image"
-              alt="product.name"
-              class="w-full h-14 object-cover rounded-md mb-2"
-            />
-            <h3 class="text-lg font-medium">{{ product.name }}</h3>
-            <p class="text-gray-600">{{ product.price }}</p>
-            <button
-              class="mt-2 w-full text-white px-4 py-2 rounded-md transition"
-              style="background-color: var(--p-primary-500)"
-            >
-              Add to Cart
-            </button>
-          </div>
-        </div>
-      </section> -->
-
     <!-- Featured Products -->
     <section class="container mx-auto px-4 py-6">
       <h2 class="text-xl font-semibold mb-4">Featured Products</h2>
 
       <div class="flex justify-between">
-        <!-- Filter Buttons -->
         <div class="flex gap-2 mb-6">
           <Button
             label="All"
-            :style="{
-              backgroundColor: filter === 'all' ? 'var(--p-primary-400)' : '',
-              color: filter === 'all' ? 'white' : '',
-            }"
+            :style="{ backgroundColor: filter === 'all' ? 'var(--p-primary-400)' : '', color: filter === 'all' ? 'white' : '' }"
             class="p-button-secondary"
             @click="filterProducts('all')"
           />
           <Button
             label="Food"
-            :style="{
-              backgroundColor: filter === 'food' ? 'var(--p-primary-400)' : '',
-              color: filter === 'food' ? 'white' : '',
-            }"
+            :style="{ backgroundColor: filter === 'food' ? 'var(--p-primary-400)' : '', color: filter === 'food' ? 'white' : '' }"
             class="p-button-secondary"
             @click="filterProducts('food')"
           />
           <Button
             label="Drink"
-            :style="{
-              backgroundColor: filter === 'drink' ? 'var(--p-primary-400)' : '',
-              color: filter === 'drink' ? 'white' : '',
-            }"
+            :style="{ backgroundColor: filter === 'drink' ? 'var(--p-primary-400)' : '', color: filter === 'drink' ? 'white' : '' }"
             class="p-button-secondary"
             @click="filterProducts('drink')"
           />
         </div>
-
-        <!-- Add New Product Button -->
-        <button @click="openAddNewProductDialog" class="mb-6 p-button">
-          <i class="pi pi-plus"></i>
-          New Item
-        </button>
+        <div class="flex gap-2 mb-6">
+          <button @click="openReceiptsDialog" class="p-button">
+            <i class="pi pi-file"></i> View Receipts
+          </button>
+          <button @click="openAddNewProductDialog" class="p-button">
+            <i class="pi pi-plus"></i> New Item
+          </button>
+        </div>
       </div>
 
       <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -133,44 +114,28 @@
           class="relative border border-surface-200 dark:border-surface-700 bg-white rounded-2xl p-3 hover:shadow-lg transition"
         >
           <div class="flex justify-center items-center">
-            <img
-              :src="product.image"
-              alt="product.name"
-              class="w-38 h-38 object-cover rounded-md mb-2"
-            />
+            <img :src="product.image" alt="product.name" class="w-38 h-38 object-cover rounded-md mb-2" />
           </div>
-
           <Tag
             :value="product.inventoryStatus"
             :severity="getSeverity(product.inventoryStatus)"
             class="rounded-xl -ml-3 mt-3"
             style="border-radius: 0 10px 10px 0"
           />
-
           <h3 class="text-lg font-medium mt-2">{{ product.name }}</h3>
-
           <p class="text-sm text-gray-500 mt-1">{{ product.desc }}</p>
-          <p class="text-sm text-gray-500 mt-1">
-            No.{{ product.rak }} | Stok : {{ product.stock }}
-          </p>
-
+          <p class="text-sm text-gray-500 mt-1">No.{{ product.rak }} | Stok : {{ product.stock }}</p>
           <div class="flex justify-between items-center mt-2">
-            <p class="text-gray-600 font-bold">Rp.{{ product.price }}</p>
-
+            <div>
+              <p v-if="product.discount > 0" class="text-red-600 font-bold">Rp{{ getDiscountedPrice(product) }}</p>
+              <p v-if="product.discount > 0" class="text-gray-500 line-through">Rp{{ product.price }}</p>
+              <p v-else class="text-gray-600 font-bold">Rp{{ product.price }}</p>
+            </div>
             <div class="justify-end">
-              <!-- Edit Button -->
-              <button
-                class="text-primary px-2 py-1 rounded-xl"
-                @click.stop="editProduct(product)"
-              >
+              <button class="text-primary px-2 py-1 rounded-xl" @click.stop="editProduct(product)">
                 <i class="pi pi-pencil"></i>
               </button>
-
-              <!-- Delete Button -->
-              <button
-                class="text-red-500 px-2 py-1 rounded-xl"
-                @click.stop="deleteProduct(product)"
-              >
+              <button class="text-red-500 px-2 py-1 rounded-xl" @click.stop="deleteProduct(product)">
                 <i class="pi pi-trash"></i>
               </button>
             </div>
@@ -180,323 +145,216 @@
     </section>
 
     <!-- Edit Product Dialog -->
-    <Dialog
-      v-model:visible="isEditDialogVisible"
-      header="Edit Product"
-      modal
-      class="w-[80%] lg:w-[25%]"
-    >
+    <Dialog v-model:visible="isEditDialogVisible" header="Edit Product" modal class="w-[80%] lg:w-[25%]">
       <div class="p-4">
-        <!-- File Upload Input -->
         <div class="mb-3">
-          <label for="productImage" class="block text-sm font-medium mb-1"
-            >Product Image</label
-          >
-          <FileUpload
-            id="productImage"
-            @select="onFileChange"
-            accept="image/*"
-            class="w-full"
-            mode="basic"
-          />
+          <label for="productImage" class="block text-sm font-medium mb-1">Product Image</label>
+          <FileUpload id="productImage" @select="onFileChange" accept="image/*" class="w-full" mode="basic" />
         </div>
         <div class="mb-3">
-          <label for="productName" class="block text-sm font-medium mb-1"
-            >Product Name</label
-          >
-          <InputText
-            id="productName"
-            v-model="selectedProduct.name"
-            class="w-full"
-          />
+          <label for="productName" class="block text-sm font-medium mb-1">Product Name</label>
+          <InputText id="productName" v-model="selectedProduct.name" class="w-full" />
         </div>
         <div class="mb-3">
-          <label for="productDesc" class="block text-sm font-medium mb-1"
-            >Description</label
-          >
-          <InputText
-            id="productDesc"
-            v-model="selectedProduct.desc"
-            class="w-full"
-          />
+          <label for="productDesc" class="block text-sm font-medium mb-1">Description</label>
+          <InputText id="productDesc" v-model="selectedProduct.desc" class="w-full" />
         </div>
         <div class="mb-3">
-          <label for="productPrice" class="block text-sm font-medium mb-1"
-            >Price</label
-          >
+          <label for="productPrice" class="block text-sm font-medium mb-1">Price</label>
+          <InputNumber id="productPrice" v-model="selectedProduct.price" mode="currency" currency="IDR" class="w-full" />
+        </div>
+        <div class="mb-3">
+          <label for="productDiscount" class="block text-sm font-medium mb-1">Discount (%)</label>
           <InputNumber
-            id="productPrice"
-            v-model="selectedProduct.price"
-            mode="currency"
-            currency="IDR"
+            id="productDiscount"
+            v-model="selectedProduct.discount"
             class="w-full"
+            :min="0"
+            :max="100"
+            placeholder="0"
           />
         </div>
         <div class="mb-3">
-          <label for="productRak" class="block text-sm font-medium mb-1"
-            >Rak</label
-          >
-          <InputNumber
-            id="productRak"
-            v-model="selectedProduct.rak"
-            class="w-full"
-          />
+          <label for="productRak" class="block text-sm font-medium mb-1">Rak</label>
+          <InputNumber id="productRak" v-model="selectedProduct.rak" class="w-full" />
         </div>
         <div class="mb-3">
-          <label for="productStock" class="block text-sm font-medium mb-1"
-            >Stock</label
-          >
-          <InputNumber
-            id="productStock"
-            v-model="selectedProduct.stock"
-            class="w-full"
-          />
+          <label for="productStock" class="block text-sm font-medium mb-1">Stock</label>
+          <InputNumber id="productStock" v-model="selectedProduct.stock" class="w-full" />
         </div>
-
         <div class="flex justify-end mt-8 gap-2">
-          <Button
-            label="Cancel"
-            class="p-button-secondary"
-            @click="cancelEdit"
-          />
-          <Button
-            label="Save"
-            class="p-button-primary"
-            @click="saveProduct"
-            :loading="loading"
-          />
+          <Button label="Cancel" class="p-button-secondary" @click="cancelEdit" />
+          <Button label="Save" class="p-button-primary" @click="saveProduct" :loading="loading" />
         </div>
       </div>
     </Dialog>
 
     <!-- Add New Product Dialog -->
-    <Dialog
-      v-model:visible="isAddNewDialogVisible"
-      header="Add New Product"
-      modal
-      class="w-[80%] lg:w-[25%]"
-    >
+    <Dialog v-model:visible="isAddNewDialogVisible" header="Add New Product" modal class="w-[80%] lg:w-[25%]">
       <div class="p-4">
-        <!-- File Upload Input -->
         <div class="mb-3">
-          <label for="productImage" class="block text-sm font-medium mb-1"
-            >Product Image</label
-          >
-          <FileUpload
-            id="productImage"
-            @select="onFileChange"
-            accept="image/*"
-            class="w-full"
-            mode="basic"
-          />
+          <label for="productImage" class="block text-sm font-medium mb-1">Product Image</label>
+          <FileUpload id="productImage" @select="onFileChange" accept="image/*" class="w-full" mode="basic" />
         </div>
         <div class="mb-3">
-          <label for="productName" class="block text-sm font-medium mb-1"
-            >Product Name</label
-          >
-          <InputText
-            id="productName"
-            v-model="newProduct.name"
-            class="w-full"
-          />
+          <label for="productName" class="block text-sm font-medium mb-1">Product Name</label>
+          <InputText id="productName" v-model="newProduct.name" class="w-full" />
         </div>
         <div class="mb-3">
-          <label for="productDesc" class="block text-sm font-medium mb-1"
-            >Description</label
-          >
-          <InputText
-            id="productDesc"
-            v-model="newProduct.desc"
-            class="w-full"
-          />
+          <label for="productDesc" class="block text-sm font-medium mb-1">Description</label>
+          <InputText id="productDesc" v-model="newProduct.desc" class="w-full" />
         </div>
         <div class="mb-3">
-          <label for="productPrice" class="block text-sm font-medium mb-1"
-            >Price</label
-          >
+          <label for="productPrice" class="block text-sm font-medium mb-1">Price</label>
+          <InputNumber id="productPrice" v-model="newProduct.price" mode="currency" currency="IDR" class="w-full" />
+        </div>
+        <div class="mb-3">
+          <label for="productDiscount" class="block text-sm font-medium mb-1">Discount (%)</label>
           <InputNumber
-            id="productPrice"
-            v-model="newProduct.price"
-            mode="currency"
-            currency="IDR"
+            id="productDiscount"
+            v-model="newProduct.discount"
             class="w-full"
+            :min="0"
+            :max="100"
+            placeholder="0"
           />
         </div>
         <div class="mb-3">
-          <label for="productRak" class="block text-sm font-medium mb-1"
-            >Rak</label
-          >
-          <InputNumber
-            id="productRak"
-            v-model="newProduct.rak"
-            class="w-full"
-          />
+          <label for="productRak" class="block text-sm font-medium mb-1">Rak</label>
+          <InputNumber id="productRak" v-model="newProduct.rak" class="w-full" />
         </div>
         <div class="mb-3">
-          <label for="productStock" class="block text-sm font-medium mb-1"
-            >Stock</label
-          >
-          <InputNumber
-            id="productStock"
-            v-model="newProduct.stock"
-            class="w-full"
-          />
+          <label for="productStock" class="block text-sm font-medium mb-1">Stock</label>
+          <InputNumber id="productStock" v-model="newProduct.stock" class="w-full" />
         </div>
-
         <div class="flex justify-end mt-8 gap-2">
-          <Button
-            label="Cancel"
-            class="p-button-secondary"
-            @click="closeAddNewProductDialog"
-          />
-          <Button
-            label="Save"
-            class="p-button-primary"
-            @click="saveNewProduct"
-            :loading="loading"
-          />
+          <Button label="Cancel" class="p-button-secondary" @click="closeAddNewProductDialog" />
+          <Button label="Save" class="p-button-primary" @click="saveNewProduct" :loading="loading" />
         </div>
       </div>
     </Dialog>
 
-    <!-- Drawer -->
-    <Drawer
-      v-model:visible="isDrawerVisible"
-      position="bottom"
-      style="height: auto"
-    >
-      <template #header>
-        <div v-if="selectedProduct" class="text-2xl font-bold">
-          {{ selectedProduct.name }}
+    <!-- Receipts Dialog -->
+    <Dialog v-model:visible="isReceiptsDialogVisible" header="Transaction Receipts" modal class="w-[90%] lg:w-[50%]">
+      <div class="p-4">
+        <div class="flex justify-between mb-4">
+          <Button
+            :label="sortOrder === 'desc' ? 'Sort: Newest First' : 'Sort: Oldest First'"
+            class="p-button-secondary"
+            @click="toggleSortOrder"
+          />
+          <Button label="Delete All Receipts" class="p-button-danger" @click="deleteAllReceipts" :disabled="receipts.length === 0" />
         </div>
+        <div v-if="sortedReceipts.length > 0" class="overflow-x-auto">
+          <table class="w-full text-sm text-left text-gray-500">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+              <tr>
+                <th class="px-2 py-2">Time</th>
+                <th class="px-2 py-2">Items</th>
+                <th class="px-2 py-2">Grand Total</th>
+                <th class="px-2 py-2">Voucher</th>
+                <th class="px-2 py-2">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="receipt in sortedReceipts" :key="receipt.id" class="bg-white border-b">
+                <td class="px-2 py-2">{{ new Date(receipt.timestamp).toLocaleString() }}</td>
+                <td class="px-2 py-2">
+                  <ul>
+                    <li v-for="item in receipt.items" :key="item.id">
+                      {{ item.name }} (ID: {{ item.id }}) - Qty: {{ item.quantity }}, Price: Rp{{ item.price }}, Total: Rp{{ item.totalPrice }}, Rak: {{ item.rak }}, Disc: {{ item.discount }}%
+                    </li>
+                  </ul>
+                </td>
+                <td class="px-2 py-2">Rp{{ receipt.grandTotal }}</td>
+                <td class="px-2 py-2">{{ receipt.usedVoucher ? `Yes (${receipt.voucherDiscount}%)` : 'No' }}</td>
+                <td class="px-2 py-2 flex gap-2">
+                  <button class="text-red-500" @click="deleteReceipt(receipt)">
+                    <i class="pi pi-trash"></i>
+                  </button>
+                  <button class="text-blue-500" @click="downloadReceiptAsPDF(receipt)">
+                    <i class="pi pi-download"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div v-else class="text-center text-gray-500">No receipts available.</div>
+      </div>
+    </Dialog>
+
+    <!-- Drawer -->
+    <Drawer v-model:visible="isDrawerVisible" position="bottom" style="height: auto">
+      <template #header>
+        <div v-if="selectedProduct" class="text-2xl font-bold">{{ selectedProduct.name }}</div>
       </template>
       <div v-if="selectedProduct" class="p-4">
-        <img
-          :src="selectedProduct.image"
-          alt="selectedProduct.name"
-          class="w-full h-full object-cover rounded-md mb-4"
-        />
+        <img :src="selectedProduct.image" alt="selectedProduct.name" class="w-full h-full object-cover rounded-md mb-4" />
         <p class="text-sm text-gray-500 mt-2">{{ selectedProduct.desc }}</p>
-        <p class="text-sm text-gray-500 mt-2">
-          Rak: {{ selectedProduct.rak }} | Stok: {{ selectedProduct.stock }}
-        </p>
-        <p class="text-gray-600 font-bold mt-4 text-2xl flex justify-center">
-          Rp.{{ selectedProduct.price }}
-        </p>
+        <p class="text-sm text-gray-500 mt-2">Rak: {{ selectedProduct.rak }} | Stok: {{ selectedProduct.stock }}</p>
+        <div class="mt-4 flex justify-center items-center gap-2">
+          <p v-if="selectedProduct.discount > 0" class="text-red-600 font-bold text-2xl">Rp{{ getDiscountedPrice(selectedProduct) }}</p>
+          <p v-if="selectedProduct.discount > 0" class="text-gray-500 line-through text-lg">Rp{{ selectedProduct.price }}</p>
+          <p v-else class="text-gray-600 font-bold text-2xl">Rp{{ selectedProduct.price }}</p>
+        </div>
         <button
           class="mt-4 text-white px-4 py-2 rounded-md transition w-full"
           style="background-color: var(--p-primary-500)"
-          @click="
-            (event) => {
-              closeDrawer(selectedProduct);
-              animateProductToCart(event, selectedProduct);
-              addToCart(selectedProduct);
-            }
-          "
+          @click="(event) => { closeDrawer(selectedProduct); animateProductToCart(event, selectedProduct); addToCart(selectedProduct); }"
         >
-          <i class="pi pi-shopping-cart mr-2"></i>
-          Add to Cart
+          <i class="pi pi-shopping-cart mr-2"></i> Add to Cart
         </button>
       </div>
     </Drawer>
 
     <!-- Cart Drawer -->
-    <Drawer
-      v-model:visible="isCartDrawerVisible"
-      position="bottom"
-      style="height: auto; overflow-y: auto"
-    >
+    <Drawer v-model:visible="isCartDrawerVisible" position="bottom" style="height: auto; overflow-y: auto">
       <template #header>
         <div class="text-2xl font-bold">Your Cart</div>
       </template>
       <div class="p-4">
-        <!-- Cart Items -->
         <div v-if="cartItems.length > 0">
-          <div
-            v-for="(item, index) in cartItems"
-            :key="index"
-            class="flex items-center justify-between mb-4"
-          >
-            <img
-              :src="item.product.image"
-              alt="product.name"
-              class="w-12 h-12 object-cover rounded-md"
-            />
+          <div v-for="(item, index) in cartItems" :key="index" class="flex items-center justify-between mb-4">
+            <img :src="item.product.image" alt="product.name" class="w-12 h-12 object-cover rounded-md" />
             <div class="flex flex-col">
               <span class="font-medium">{{ item.product.name }}</span>
-              <span class="text-sm text-gray-500"
-                >Qty: {{ item.quantity }}</span
-              >
+              <span class="text-sm text-gray-500">Qty: {{ item.quantity }}</span>
             </div>
-
-            <!-- Quantity Adjust Buttons -->
             <div class="flex items-center gap-2">
-              <button
-                class="p-2 bg-gray-200 rounded-md"
-                @click="decreaseQuantity(item)"
-              >
+              <button class="p-2 bg-gray-200 rounded-md" @click="decreaseQuantity(item)">
                 <i class="pi pi-minus" />
               </button>
-              <button
-                class="p-2 bg-gray-200 rounded-md"
-                @click="increaseQuantity(item)"
-              >
+              <button class="p-2 bg-gray-200 rounded-md" @click="increaseQuantity(item)">
                 <i class="pi pi-plus" />
               </button>
             </div>
-
-            <span class="font-bold"
-              >Rp.{{ item.product.price * item.quantity }}</span
-            >
+            <div class="text-right">
+              <span v-if="item.product.discount > 0" class="font-bold text-red-600">Rp{{ getDiscountedPrice(item.product) * item.quantity }}</span>
+              <span v-if="item.product.discount > 0" class="block text-gray-500 line-through text-sm">Rp{{ item.product.price * item.quantity }}</span>
+              <span v-else class="font-bold">Rp{{ item.product.price * item.quantity }}</span>
+            </div>
           </div>
-
-          <!-- Total Payment -->
-          <div class="text-xl font-bold text-right mt-8">
-            Total: Rp.{{ totalPayment }}
-          </div>
-
-          <!-- Payment Button -->
+          <div class="text-xl font-bold text-right mt-8">Total: Rp.{{ totalPaymentWithPromo }}</div>
           <div class="mt-4">
-            <Button
-              label="Proceed to Payment"
-              class="w-full p-button-primary"
-              :loading="isLoadingPayment"
-              @click="proceedToPayment"
-            />
+            <Button label="Proceed to Payment" class="w-full p-button-primary" :loading="isLoadingPayment" @click="proceedToPayment" />
           </div>
         </div>
-
-        <!-- Empty Cart Message -->
         <div v-else class="text-center text-gray-500">Your cart is empty.</div>
       </div>
     </Drawer>
 
     <!-- QR Code Dialog -->
-    <Dialog
-      v-model:visible="showQRCode"
-      header="Scan Here"
-      modal
-      :closable="true"
-      :style="{ width: '350px', height: '400px' }"
-    >
+    <Dialog v-model:visible="showQRCode" header="Scan Here" modal :closable="true" :style="{ width: '350px', height: '400px' }">
       <div class="p-4 text-center">
         <img :src="qrCode" alt="QR Code" class="mx-auto mb-4" />
       </div>
     </Dialog>
 
     <!-- Payment Success Modal -->
-    <Dialog
-      v-model:visible="showPaymentSuccessModal"
-      header="Payment Successfully"
-      modal
-      :closable="true"
-      :style="{ width: '300px', height: '300px' }"
-    >
+    <Dialog v-model:visible="showPaymentSuccessModal" header="Payment Successfully" modal :closable="true" :style="{ width: '300px', height: '300px' }">
       <div class="p-4 text-center">
-        <i
-          class="pi pi-check-circle mt-5"
-          style="font-size: 4rem; color: #27ae60"
-        />
+        <i class="pi pi-check-circle mt-5" style="font-size: 4rem; color: #27ae60" />
         <p class="font-bold mt-6">Your payment was successful!</p>
         <p>Please wait while we prepare your product.</p>
       </div>
@@ -508,26 +366,16 @@
 import { ref, onMounted, computed } from "vue";
 import qrcodeImage from "../assets/qrcode.png";
 import { db } from "../firebase";
-import {
-  onValue,
-  ref as dbRef,
-  update,
-  remove,
-  push,
-  get,
-  set,
-} from "firebase/database";
-import {
-  getStorage,
-  ref as storRef,
-  uploadBytes,
-  getDownloadURL,
-} from "firebase/storage";
+import { onValue, ref as dbRef, update, remove, push, get, set } from "firebase/database";
+import { getStorage, ref as storRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useToast } from "primevue/usetoast";
 import { useConfirm } from "primevue/useconfirm";
+import jsPDF from "jspdf";
+import { useRouter } from "vue-router";
 
 export default {
   setup() {
+    const router = useRouter();
     const toast = useToast();
     const confirm = useConfirm();
     const promos = ref([]);
@@ -544,55 +392,221 @@ export default {
     const isLoadingPayment = ref(false);
     const showQRCode = ref(false);
     const qrCode = qrcodeImage;
-    const isEditDialogVisible = ref(false); // To control dialog visibility
-    const files = ref([]); // Array to store selected files
+    const isEditDialogVisible = ref(false);
+    const files = ref([]);
     const imageUrl = ref(null);
-    const responsiveOptions = ref([
-      {
-        breakpoint: "1400px",
-        numVisible: 2,
-        numScroll: 1,
-      },
-      {
-        breakpoint: "1199px",
-        numVisible: 3,
-        numScroll: 1,
-      },
-      {
-        breakpoint: "767px",
-        numVisible: 2,
-        numScroll: 1,
-      },
-      {
-        breakpoint: "575px",
-        numVisible: 1,
-        numScroll: 1,
-      },
-    ]);
+    const loggedInUser = ref(localStorage.getItem("loggedInUser") || "");
     const isAddNewDialogVisible = ref(false);
     const newProduct = ref({
       name: "",
       desc: "",
       price: 0,
+      discount: 0,
       rak: 0,
       stock: 0,
       image: "",
     });
     const loading = ref(false);
+    const promoDiscount = ref(0);
+    const isReceiptsDialogVisible = ref(false);
+    const receipts = ref([]);
+    const sortOrder = ref("desc");
+
+    const sortedReceipts = computed(() => {
+      const sorted = [...receipts.value]; // Salin array agar tidak mutasi asli
+      sorted.sort((a, b) => {
+        const dateA = new Date(a.timestamp);
+        const dateB = new Date(b.timestamp);
+        return sortOrder.value === "desc" ? dateB - dateA : dateA - dateB;
+      });
+      return sorted;
+    });
+
+    const toggleSortOrder = () => {
+      sortOrder.value = sortOrder.value === "desc" ? "asc" : "desc";
+    };
+
+    // Fungsi untuk mencatat aktivitas ke Firebase
+    const logActivity = async (activityCode, description = null) => {
+      if (loggedInUser.value) {
+        const statusChangesRef = dbRef(db, `users/${loggedInUser.value}/statusChanges`);
+        try {
+          await push(statusChangesRef, {
+            type: "activity",
+            code: activityCode,
+            timestamp: new Date().toISOString(),
+            ...(description && { description }),
+          });
+          console.log(`Activity ${activityCode} logged for ${loggedInUser.value}${description ? ` with description: ${description}` : ''}`);
+        } catch (error) {
+          console.error("Error logging activity:", error);
+        }
+      }
+    };
+
+    const updateStatusToAdmin = async () => {
+      if (loggedInUser.value) {
+        const userRef = dbRef(db, `users/${loggedInUser.value}`);
+        const statusChangeRef = dbRef(db, `users/${loggedInUser.value}/statusChanges`);
+        try {
+          const userSnapshot = await get(userRef);
+          if (userSnapshot.exists()) {
+            await update(userRef, { status: "S003" });
+            await push(statusChangeRef, { status: "S003", timestamp: new Date().toISOString() });
+          }
+          logActivity("S003");
+        } catch (error) {
+          console.error("Error updating status to S003:", error);
+          toast.add({ severity: "error", summary: "Error", detail: "Failed to update status to Online-Setup.", life: 3000 });
+        }
+      }
+    };
+
+    const goToRun = async () => {
+      if (loggedInUser.value) {
+        const userRef = dbRef(db, `users/${loggedInUser.value}`);
+        const statusChangeRef = dbRef(db, `users/${loggedInUser.value}/statusChanges`);
+        try {
+          const userSnapshot = await get(userRef);
+          if (userSnapshot.exists()) {
+            await update(userRef, { status: "S001" });
+            await push(statusChangeRef, { status: "S001", timestamp: new Date().toISOString() });
+          }
+          router.push("/");
+        } catch (error) {
+          console.error("Error updating status to S001:", error);
+          toast.add({ severity: "error", summary: "Error", detail: "Failed to update status.", life: 3000 });
+        }
+      } else {
+        toast.add({ severity: "warn", summary: "Not Logged In", detail: "Please login first.", life: 3000 });
+      }
+    };
+
+    const goToLogin = () => {
+      router.push("/login");
+    };
+
+    const responsiveOptions = ref([
+      { breakpoint: "1400px", numVisible: 2, numScroll: 1 },
+      { breakpoint: "1199px", numVisible: 3, numScroll: 1 },
+      { breakpoint: "767px", numVisible: 2, numScroll: 1 },
+      { breakpoint: "575px", numVisible: 1, numScroll: 1 },
+    ]);
+
+    const downloadReceiptAsPDF = async (receipt) => {
+      try {
+        console.log("Starting PDF generation for receipt:", receipt);
+
+        const doc = new jsPDF();
+        console.log("jsPDF instance created");
+
+        // Slide 1: Detail Transaksi
+        doc.setFontSize(16);
+        doc.text("Studio 8 Workshop", 10, 10);
+        doc.setFontSize(12);
+        doc.text("Jl. Tombro Tengah No.4", 10, 20);
+        doc.text("Kota Malang", 10, 30);
+        doc.setFontSize(16);
+        doc.text("R E C E I P T", 160, 40);
+
+        doc.setFontSize(12);
+        doc.text("Location: Universitas Brawijaya", 10, 50);
+        doc.text(`Receipt# : ${receipt.id}`, 120, 50);
+        doc.text(`R. Date  : ${new Date(receipt.timestamp).toLocaleDateString()}`, 120, 60);
+        doc.text(`R. Time  : ${new Date(receipt.timestamp).toLocaleTimeString()}`, 120, 70);
+        doc.text(`IDVM     : ${loggedInUser.value}`, 120, 80);
+
+        doc.text("----------------------------------------------------------------------------------------------------------------------------------------", 10, 96);
+        doc.text("QTY", 10, 100); // Kolom QTY
+        doc.text("Description", 25, 100); // Kolom Description
+        doc.text("Unit Price", 120, 100); // Kolom Unit Price
+        doc.text("Amount", 170, 100); // Kolom Amount
+        doc.text("----------------------------------------------------------------------------------------------------------------------------------------", 10, 104);
+
+        let yPosition = 114;
+        receipt.items.forEach((item) => {
+          const qty = `${item.quantity}`;
+          const description = `[${item.rak}]${item.name}`;
+          const unitPrice = `Rp${item.price}`;
+          const amount = `Rp${item.totalPrice}`;
+
+          // Gunakan koordinat X tetap untuk setiap kolom
+          doc.text(qty, 10, yPosition); // Kolom QTY pada X=10
+          doc.text(description, 25, yPosition, { maxWidth: 90 }); // Kolom Description pada X=25, batasi lebar 90
+          doc.text(unitPrice, 120, yPosition); // Kolom Unit Price pada X=120
+          doc.text(amount, 170, yPosition); // Kolom Amount pada X=170
+
+          yPosition += 10;
+        });
+
+        doc.text("----------------------------------------------------------------------------------------------------------------------------------------", 10, yPosition);
+        yPosition += 10;
+        doc.text(`subtotal:                Rp${receipt.grandTotal + (receipt.voucherDiscount || 0)}`, 135, yPosition);
+        yPosition += 10;
+        doc.text(`diskon:                  Rp${receipt.voucherDiscount || 0}`, 135, yPosition);
+        yPosition += 10;
+        doc.text("----------------------------------------------", 135, yPosition);
+        yPosition += 10;
+        doc.text(`Total (IDR):             Rp${receipt.grandTotal}`, 135, yPosition);
+        yPosition += 10;
+        doc.text("----------------------------------------------------------------------------------------------------------------------------------------", 10, yPosition);
+        yPosition += 10;
+
+        // const machineStatus = receipt.items.some(item => item.stock === 0) ? "NOT OK" : "OK";
+        const machineStatus = products.value.some(p => p.stock === 0) ? "NOT OK" : "OK";
+        doc.text(`Status Machine = ${machineStatus}`, 10, yPosition);
+
+        // Slide 2: Bukti Pembayaran
+        doc.addPage();
+        doc.setFontSize(16);
+        doc.text("Bukti Pembayaran", 10, 10);
+        // doc.addImage(receipt.paymentProof, 'PNG', 10, 20, 180, 180); // Uncomment jika ada data gambar
+
+        // Simpan PDF
+        const fileName = `receipt_${receipt.id}_${new Date(receipt.timestamp).toISOString().split("T")[0]}.pdf`;
+        doc.save(fileName);
+        console.log("PDF saved with filename:", fileName);
+
+        toast.add({
+          severity: "success",
+          summary: "PDF Downloaded",
+          detail: `Receipt ${receipt.id} has been downloaded successfully.`,
+          life: 3000
+        });
+      } catch (error) {
+        console.error("Error generating PDF:", error);
+        toast.add({
+          severity: "error",
+          summary: "Download Failed",
+          detail: `Failed to download receipt: ${error.message}`,
+          life: 5000
+        });
+      }
+    };
+
+    const validPromoCodes = { "DISKON10": 10, "DISKON20": 20, "FREESHIP": 15 };
+
+    const getDiscountedPrice = (product) => {
+      return product.discount && product.discount > 0 ? Math.round(product.price * (1 - product.discount / 100)) : product.price;
+    };
+
+    const totalPaymentWithPromo = computed(() => {
+      const subtotal = cartItems.value.reduce((total, item) => total + getDiscountedPrice(item.product) * item.quantity, 0);
+      return Math.round(subtotal * (1 - promoDiscount.value / 100));
+    });
+
+    const determineInventoryStatus = (stock) => {
+      if (stock > 5) return "INSTOCK";
+      if (stock > 0 && stock <= 5) return "LOWSTOCK";
+      return "OUTOFSTOCK";
+    };
 
     const getSeverity = (status) => {
       switch (status) {
-        case "INSTOCK":
-          return "success";
-
-        case "LOWSTOCK":
-          return "warn";
-
-        case "OUTOFSTOCK":
-          return "danger";
-
-        default:
-          return null;
+        case "INSTOCK": return "success";
+        case "LOWSTOCK": return "warn";
+        case "OUTOFSTOCK": return "danger";
+        default: return null;
       }
     };
 
@@ -600,316 +614,231 @@ export default {
       filter.value = type;
     };
 
-    // Function to open the edit dialog
     const editProduct = (product) => {
-      selectedProduct.value = { ...product }; // Copy product to selectedProduct
-      isEditDialogVisible.value = true; // Show dialog
+      selectedProduct.value = { ...product };
+      isEditDialogVisible.value = true;
     };
 
     const onFileChange = (event) => {
-      if (selectedProduct.image) {
-        // If there's an existing image, use it as the file
-        files.value = [
-          {
-            name: selectedProduct.image.split("/").pop(), // Extract file name from the image URL
-            type: "image/jpeg", // Assuming the image is JPEG; adjust based on your needs
-            url: selectedProduct.image, // The existing image URL
-          },
-        ];
-      } else {
-        // If there's no existing image, just use the selected files
-        files.value = event.files;
-      }
-
-      // Optionally, you can handle previews here as well if needed:
-      // previews.value = files.value.map((file) => {
-      //   const reader = new FileReader();
-      //   reader.readAsDataURL(file);
-      //   return new Promise((resolve) => {
-      //     reader.onload = (e) => resolve(e.target.result);
-      //   });
-      // });
-      // Promise.all(previews.value).then((resolvedPreviews) => {
-      //   previews.value = resolvedPreviews;
-      // });
+      files.value = event.files;
     };
 
-    // Function to save the edited product
     const saveProduct = async () => {
       loading.value = true;
-      // Make sure the selectedProduct has an id (or create it if it's a new product)
       if (selectedProduct.value && selectedProduct.value.id) {
         const productId = selectedProduct.value.id;
-        console.log(productId);
-
-        // Reference to the product in the Firebase Realtime Database
         const productRef = dbRef(db, `products/${productId}`);
 
         if (files.value.length > 0) {
           const file = files.value[0];
           const storage = getStorage();
-          const storageRef = storRef(storage, `products/${file.name}`); // Ganti path sesuai dengan struktur yang diinginkan
-
+          const storageRef = storRef(storage, `products/${file.name}`);
           try {
-            // Upload file ke Firebase Storage
-            const snapshot = await uploadBytes(storageRef, file);
-            console.log("File uploaded successfully!");
-
-            // Setelah berhasil upload, dapatkan URL file
-            const downloadURL = await getDownloadURL(snapshot.ref);
-            // Simpan URL gambar ke selectedProduct
-            imageUrl.value = downloadURL;
+            await uploadBytes(storageRef, file);            
+            imageUrl.value = await getDownloadURL(storageRef);
+            console.log("File uploaded, URL:", imageUrl.value);
+            return imageUrl.value; 
           } catch (error) {
             console.error("Error uploading file:", error);
-            toast.add({
-              severity: "error",
-              summary: "Upload Error",
-              detail: "Failed to upload image.",
-              group: "tr",
-            });
-            return; // If there's an error, stop further execution
+            toast.add({ severity: "error", summary: "Upload Error", detail: "Failed to upload image.", group: "tr" });
+            loading.value = false;
+            return;
           }
         }
 
         const imageToUpdate = imageUrl.value || selectedProduct.value.image;
-        console.log("Image URL:", imageToUpdate);
+        const updatedStock = selectedProduct.value.stock;
+        const updatedInventoryStatus = determineInventoryStatus(updatedStock);
 
-        // Update the product data in Firebase
+        // Tentukan kode aktivitas berdasarkan nomor rak
+        const rakNumber = String(selectedProduct.value.rak).padStart(3, "0");
+        const activityCode = `I${rakNumber}`; // Misal rak 15 jadi "I015"
+
+        // Tentukan perubahan apa yang terjadi untuk log
+        const originalProduct = products.value.find(p => p.id === productId);
+        let changes = [];
+        if (originalProduct.name !== selectedProduct.value.name) changes.push("Name");
+        if (originalProduct.desc !== selectedProduct.value.desc) changes.push("Description");
+        if (originalProduct.price !== selectedProduct.value.price) changes.push("Price");
+        if (originalProduct.discount !== selectedProduct.value.discount) changes.push("Discount");
+        if (originalProduct.rak !== selectedProduct.value.rak) changes.push("Rak");
+        if (originalProduct.stock !== selectedProduct.value.stock) changes.push("Stock");
+        if (imageUrl.value) changes.push("Image");
+
         try {
           await update(productRef, {
             name: selectedProduct.value.name,
             desc: selectedProduct.value.desc,
             price: selectedProduct.value.price,
-            stock: selectedProduct.value.stock,
+            discount: selectedProduct.value.discount || 0,
+            stock: updatedStock,
             image: imageToUpdate,
-            rak: selectedProduct.value.rak, // Include any other properties you have
-            inventoryStatus: selectedProduct.value.inventoryStatus, // Adjust according to your schema
+            rak: selectedProduct.value.rak,
+            inventoryStatus: updatedInventoryStatus,
           });
 
-          console.log("Product updated successfully!");
+          // Log aktivitas IXXX untuk edit barang
+          const description = `IN:Updated Item - ${selectedProduct.value.name} (${changes.join(", ")})`;
+          await logActivity(activityCode, description);
+
           toast.add({
             severity: "success",
             summary: "Product updated",
-            detail: `${selectedProduct.value.name} has been updated.`,
+            detail: `${selectedProduct.value.name} has been updated. Stock status: ${updatedInventoryStatus}`,
             group: "tr",
           });
-
-          // Close the dialog after updating
           isEditDialogVisible.value = false;
         } catch (error) {
           console.error("Error updating product:", error);
-          toast.add({
-            severity: "error",
-            summary: "Error",
-            detail: `Failed to update ${selectedProduct.value.name}. ${error.message}`,
-            group: "tr",
-            life: 3000,
-          });
+          toast.add({ severity: "error", summary: "Error", detail: `Failed to update ${selectedProduct.value.name}. ${error.message}`, group: "tr", life: 3000 });
         }
       }
       loading.value = false;
     };
 
-    // Function to cancel editing
     const cancelEdit = () => {
-      isEditDialogVisible.value = false; // Close the dialog without saving
+      isEditDialogVisible.value = false;
       loading.value = false;
     };
 
-    // Open Add New Product Dialog
     const openAddNewProductDialog = () => {
       isAddNewDialogVisible.value = true;
     };
 
-    // Close Add New Product Dialog
     const closeAddNewProductDialog = () => {
       isAddNewDialogVisible.value = false;
       loading.value = false;
+      newProduct.value = { name: "", desc: "", price: 0, discount: 0, rak: 0, stock: 0, image: "" };
     };
 
-    // Save New Product to Firebase
     const saveNewProduct = async () => {
       loading.value = true;
-      const { name, desc, price, rak, stock } = newProduct.value;
+      const { name, desc, price, discount, rak, stock } = newProduct.value;
 
-      // Validate product data
-      if (!name || !desc || price <= 0 || stock <= 0 || !rak) {
-        toast.add({
-          severity: "error",
-          summary: "Invalid Input",
-          detail: "Please fill in all fields correctly.",
-          group: "tr",
-          life: 3000,
-        });
-        loading.value = false; // Hide loading indicator on error
+      if (!name || !desc || price <= 0 || stock < 0 || !rak) {
+        toast.add({ severity: "error", summary: "Invalid Input", detail: "Please fill in all fields correctly.", group: "tr", life: 3000 });
+        loading.value = false;
         return;
       }
 
       let imageUrl = "";
-
-      // Handle image upload if a file is selected
       if (files.value.length > 0) {
         const file = files.value[0];
         const storage = getStorage();
         const storageRef = storRef(storage, `products/${file.name}`);
-
         try {
           const snapshot = await uploadBytes(storageRef, file);
-          const downloadURL = await getDownloadURL(snapshot.ref);
-          imageUrl = downloadURL;
+          imageUrl = await getDownloadURL(snapshot.ref);
         } catch (error) {
-          toast.add({
-            severity: "error",
-            summary: "Upload Error",
-            detail: "Failed to upload product image.",
-            group: "tr",
-            life: 3000,
-          });
-          loading.value = false; // Hide loading indicator on error
+          toast.add({ severity: "error", summary: "Upload Error", detail: "Failed to upload product image.", group: "tr", life: 3000 });
+          loading.value = false;
           console.log("Error uploading image:", error);
           return;
         }
       }
 
-      // Get the last product ID and increment it
       const productsRef = dbRef(db, "products");
       try {
         const snapshot = await get(productsRef);
         let lastId = 0;
         if (snapshot.exists()) {
-          const products = snapshot.val();
-          const productIds = Object.keys(products);
+          const productsData = snapshot.val();
+          const productIds = Object.keys(productsData);
           if (productIds.length > 0) {
             lastId = Math.max(...productIds.map((id) => parseInt(id, 10)));
           }
         }
 
         const newProductId = lastId + 1;
+        const newInventoryStatus = determineInventoryStatus(stock);
 
-        // Create product object
         const newProductData = {
           name,
           id: newProductId,
           desc,
           price,
+          discount: discount || 0,
           stock,
           rak,
           image: imageUrl,
-          inventoryStatus: "INSTOCK", // Default status
+          inventoryStatus: newInventoryStatus,
         };
 
-        console.log("Saving new product with ID:", newProductId);
-
-        // Save new product with incremented ID
         const newProductRef = dbRef(db, `products/${newProductId}`);
         await set(newProductRef, newProductData);
+
+        // Log aktivitas IXXX untuk barang baru berdasarkan nomor rak
+        const rakNumber = String(rak).padStart(3, "0");
+        const activityCode = `I${rakNumber}`; // Misal rak 15 jadi "I015"
+        const description = `IN:New Item - ${name}`;
+        await logActivity(activityCode, description);
 
         toast.add({
           severity: "success",
           summary: "Product Added",
-          detail: "The new product has been added successfully.",
+          detail: `The new product ${name} has been added with status: ${newInventoryStatus}`,
           group: "tr",
         });
-        closeAddNewProductDialog(); // Close the dialog after saving
+        closeAddNewProductDialog();
       } catch (error) {
-        toast.add({
-          severity: "error",
-          summary: "Error",
-          detail: "Failed to add new product.",
-          group: "tr",
-          life: 3000,
-        });
+        toast.add({ severity: "error", summary: "Error", detail: "Failed to add new product.", group: "tr", life: 3000 });
         console.log("Error saving product:", error);
       }
-
       loading.value = false;
     };
 
-    // Delete Product
     const deleteProduct = (product) => {
       const productRef = dbRef(db, `products/${product.id}`);
-      console.log(product.id);
       confirm.require({
         message: `Do you want to delete ${product.name}?`,
         header: "Danger Zone",
         icon: "pi pi-info-circle",
         rejectLabel: "Cancel",
-        rejectProps: {
-          label: "Cancel",
-          severity: "secondary",
-          outlined: true,
-        },
-        acceptProps: {
-          label: "Delete",
-          severity: "danger",
-        },
-        accept: () => {
-          remove(productRef)
-            .then(() => {
-              // Handle successful deletion
-              toast.add({
-                severity: "success",
-                summary: "Product deleted",
-                detail: `${product.name} has been removed.`,
-                group: "tr",
-              });
-            })
-            .catch((error) => {
-              // Handle error
-              toast.add({
-                severity: "error",
-                summary: "Error",
-                detail: `Failed to delete ${product.name}. ${error.message}`,
-                group: "tr",
-                life: 3000,
-              });
-            });
+        rejectProps: { label: "Cancel", severity: "secondary", outlined: true },
+        acceptProps: { label: "Delete", severity: "danger" },
+        accept: async () => {
+          try {
+            await remove(productRef);
+
+            // Log aktivitas IXXX untuk barang yang dihapus berdasarkan nomor rak
+            const rakNumber = String(product.rak).padStart(3, "0");
+            const activityCode = `I${rakNumber}`; // Misal rak 15 jadi "I015"
+            const description = `IN:Deleted Item - ${product.name}`;
+            await logActivity(activityCode, description);
+
+            toast.add({ severity: "success", summary: "Product deleted", detail: `${product.name} has been removed.`, group: "tr" });
+          } catch (error) {
+            toast.add({ severity: "error", summary: "Error", detail: `Failed to delete ${product.name}. ${error.message}`, group: "tr", life: 3000 });
+          }
         },
         reject: () => {
-          toast.add({
-            severity: "error",
-            summary: "Canceled",
-            detail: "You have rejected to delete",
-            life: 3000,
-            group: "tr",
-          });
+          toast.add({ severity: "error", summary: "Canceled", detail: "You have rejected to delete", life: 3000, group: "tr" });
         },
       });
     };
 
     const addToCart = (product) => {
-      const existingItem = cartItems.value.find(
-        (item) => item.product.id === product.id
-      );
-
+      const existingItem = cartItems.value.find((item) => item.product.id === product.id);
       if (existingItem) {
-        existingItem.quantity += 1; // Increment quantity if item already in cart
+        existingItem.quantity += 1;
       } else {
-        cartItems.value.push({ product, quantity: 1 }); // Add new item to cart
+        cartItems.value.push({ product, quantity: 1 });
       }
-
-      cartCount.value += 1; // Increment cart count
-      calculateTotalPayment(); // Recalculate total payment
+      cartCount.value += 1;
+      calculateTotalPayment();
     };
 
     const calculateTotalPayment = () => {
-      let total = 0;
-      cartItems.value.forEach((item) => {
-        total += item.product.price * item.quantity;
-      });
-
-      totalPayment.value = total;
+      totalPayment.value = cartItems.value.reduce((total, item) => total + getDiscountedPrice(item.product) * item.quantity, 0);
     };
 
     const animateProductToCart = (event, product) => {
-      const { clientX, clientY } = event; // Koordinat klik
-      const cartIcon = document.querySelector(".pi-shopping-cart"); // Elemen ikon keranjang
-
+      const { clientX, clientY } = event;
+      const cartIcon = document.querySelector(".pi-shopping-cart");
       if (!cartIcon) return;
 
       const cartRect = cartIcon.getBoundingClientRect();
       const animatingElem = document.createElement("div");
-
       animatingElem.className = "animating-product";
       animatingElem.style.backgroundImage = `url(${product.image})`;
       animatingElem.style.position = "fixed";
@@ -920,7 +849,7 @@ export default {
       animatingElem.style.left = `${clientX}px`;
       animatingElem.style.top = `${clientY}px`;
       animatingElem.style.transition = "all 0.7s ease-in-out";
-      animatingElem.style.zIndex = "1100"; // Pastikan z-index lebih tinggi dari drawer
+      animatingElem.style.zIndex = "1100";
 
       document.body.appendChild(animatingElem);
 
@@ -929,11 +858,7 @@ export default {
         animatingElem.style.top = `${cartRect.top + cartRect.height / 2}px`;
         animatingElem.style.transform = "scale(0.5)";
         animatingElem.style.opacity = "0";
-
-        // Hapus elemen setelah animasi selesai
-        setTimeout(() => {
-          document.body.removeChild(animatingElem);
-        }, 700);
+        setTimeout(() => document.body.removeChild(animatingElem), 700);
       }, 10);
     };
 
@@ -943,12 +868,8 @@ export default {
         cartCount.value -= 1;
         calculateTotalPayment();
         if (item.quantity === 0) {
-          cartItems.value = cartItems.value.filter(
-            (cartItem) => cartItem.product.id !== item.product.id
-          );
-          if (cartItems.value.length === 0) {
-            toggleCartDrawer();
-          }
+          cartItems.value = cartItems.value.filter((cartItem) => cartItem.product.id !== item.product.id);
+          if (cartItems.value.length === 0) toggleCartDrawer();
         }
       }
     };
@@ -960,54 +881,20 @@ export default {
     };
 
     const proceedToPayment = () => {
-      // Show the loading animation
       isLoadingPayment.value = true;
-      console.log("Proceed to payment");
-      console.log("Loading state:", isLoadingPayment.value);
-
-      // First delay of 3 seconds to show QR code
-      console.log("Waiting 3 seconds to show QR code...");
       setTimeout(() => {
-        console.log("3 seconds passed. Showing QR code...");
-        // Show QR code
         showQRCode.value = true;
-        console.log("QR Code visible:", showQRCode.value);
-      }, 3000); // First 3 seconds delay
-
-      // After 3 more seconds, show the success dialog
-      console.log("Waiting 6 seconds to show success modal...");
+      }, 3000);
       setTimeout(() => {
-        console.log("6 seconds passed. Showing payment success modal...");
-        // Show the modal after the second delay
         showPaymentSuccessModal.value = true;
-        console.log(
-          "Payment Success Modal visible:",
-          showPaymentSuccessModal.value
-        );
-
-        // Clear the cart after the modal is shown
         cartItems.value = [];
         cartCount.value = 0;
         totalPayment.value = 0;
-        console.log(
-          "Cart cleared. Items:",
-          cartItems.value,
-          "Count:",
-          cartCount.value,
-          "Total:",
-          totalPayment.value
-        );
-
+        promoDiscount.value = 0;
         toggleCartDrawer();
-
-        // Stop the loading animation after the modal is shown
         isLoadingPayment.value = false;
-        console.log("Loading state stopped:", isLoadingPayment.value);
-
-        // Hide QR code after modal is shown
         showQRCode.value = false;
-        console.log("QR Code hidden:", showQRCode.value);
-      }, 6000); // Total 6 seconds delay (3 seconds + 3 seconds)
+      }, 6000);
     };
 
     const toggleCartDrawer = () => {
@@ -1016,23 +903,16 @@ export default {
 
     const filteredProducts = computed(() => {
       let results = products.value;
-
-      // Filter berdasarkan kategori
       if (filter.value !== "all") {
         results = results.filter((product) =>
-          filter.value === "food"
-            ? product.image.includes("food")
-            : product.image.includes("drink")
+          filter.value === "food" ? product.image.includes("food") : product.image.includes("drink")
         );
       }
-
-      // Filter berdasarkan kata kunci pencarian
       if (searchQuery.value.trim() !== "") {
         results = results.filter((product) =>
           product.name.toLowerCase().includes(searchQuery.value.toLowerCase())
         );
       }
-
       return results;
     });
 
@@ -1041,35 +921,90 @@ export default {
       isDrawerVisible.value = true;
     };
 
-    const closeDrawer = (product) => {
+    const closeDrawer = () => {
       isDrawerVisible.value = false;
     };
 
+    const openReceiptsDialog = () => {
+      isReceiptsDialogVisible.value = true;
+    };
+
+    const deleteReceipt = (receipt) => {
+      confirm.require({
+        message: `Are you sure you want to delete this receipt from ${new Date(receipt.timestamp).toLocaleString()}?`,
+        header: "Confirm Delete",
+        icon: "pi pi-exclamation-triangle",
+        rejectLabel: "Cancel",
+        rejectProps: { label: "Cancel", severity: "secondary", outlined: true },
+        acceptProps: { label: "Delete", severity: "danger" },
+        accept: async () => {
+          const receiptRef = dbRef(db, `receipts/${receipt.id}`);
+          try {
+            await remove(receiptRef);
+            toast.add({ severity: "success", summary: "Receipt Deleted", detail: "Receipt has been successfully deleted.", life: 3000 });
+          } catch (error) {
+            console.error("Error deleting receipt:", error);
+            toast.add({ severity: "error", summary: "Delete Failed", detail: "Failed to delete receipt.", life: 3000 });
+          }
+        },
+        reject: () => {
+          toast.add({ severity: "info", summary: "Canceled", detail: "Receipt deletion canceled.", life: 3000 });
+        },
+      });
+    };
+
+    const deleteAllReceipts = () => {
+      confirm.require({
+        message: "Are you sure you want to delete all receipts? This action cannot be undone.",
+        header: "Confirm Delete All",
+        icon: "pi pi-exclamation-triangle",
+        rejectLabel: "Cancel",
+        rejectProps: { label: "Cancel", severity: "secondary", outlined: true },
+        acceptProps: { label: "Delete All", severity: "danger" },
+        accept: async () => {
+          const receiptsRef = dbRef(db, "receipts");
+          try {
+            await remove(receiptsRef);
+            toast.add({ severity: "success", summary: "All Receipts Deleted", detail: "All receipts have been successfully deleted.", life: 3000 });
+          } catch (error) {
+            console.error("Error deleting all receipts:", error);
+            toast.add({ severity: "error", summary: "Delete Failed", detail: "Failed to delete all receipts.", life: 3000 });
+          }
+        },
+        reject: () => {
+          toast.add({ severity: "info", summary: "Canceled", detail: "Delete all receipts canceled.", life: 3000 });
+        },
+      });
+    };
+
     onMounted(() => {
-      // Fetch promos
+      updateStatusToAdmin();
       const promosRef = dbRef(db, "promos");
       onValue(promosRef, (snapshot) => {
         const fetchedPromos = snapshot.val();
-        promos.value = fetchedPromos
-          ? Object.values(fetchedPromos).filter(
-              (item) => item && item.image && item.name
-            )
-          : [];
+        promos.value = fetchedPromos ? Object.values(fetchedPromos).filter((item) => item && item.image && item.name) : [];
       });
 
-      // Fetch products
       const productsRef = dbRef(db, "products");
       onValue(productsRef, (snapshot) => {
         const fetchedProducts = snapshot.val();
-        products.value = fetchedProducts
-          ? Object.values(fetchedProducts).filter(
-              (item) => item && item.image && item.name
-            )
-          : [];
+        products.value = fetchedProducts ? Object.values(fetchedProducts).filter((item) => item && item.image && item.name) : [];
+        window.scrollTo(0,0); 
+        console.log("Products updated, scrolled to top");
+      });
+
+      const receiptsRef = dbRef(db, "receipts");
+      onValue(receiptsRef, (snapshot) => {
+        const fetchedReceipts = snapshot.val();
+        receipts.value = fetchedReceipts ? Object.entries(fetchedReceipts).map(([id, data]) => ({ id, ...data })) : [];
       });
     });
 
     return {
+      loggedInUser,
+      goToLogin,
+      goToRun,
+      downloadReceiptAsPDF,
       promos,
       responsiveOptions,
       getSeverity,
@@ -1087,6 +1022,7 @@ export default {
       toggleCartDrawer,
       cartItems,
       totalPayment,
+      totalPaymentWithPromo,
       decreaseQuantity,
       increaseQuantity,
       proceedToPayment,
@@ -1108,6 +1044,15 @@ export default {
       closeAddNewProductDialog,
       saveNewProduct,
       loading,
+      getDiscountedPrice,
+      isReceiptsDialogVisible,
+      receipts,
+      openReceiptsDialog,
+      deleteReceipt,
+      deleteAllReceipts,
+      sortOrder,
+      sortedReceipts,
+      toggleSortOrder,
     };
   },
 };
@@ -1117,5 +1062,17 @@ export default {
 .animating-product {
   z-index: 1100;
   pointer-events: none;
+}
+
+.text-red-600 {
+  color: #dc2626;
+}
+
+.text-gray-500 {
+  color: #6b7280;
+}
+
+.line-through {
+  text-decoration: line-through;
 }
 </style>
