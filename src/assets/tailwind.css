@@ -3,6 +3,32 @@
 @import "./primevue/tailwind.css";
 @import "tailwindcss/utilities";
 
+.product-drawer-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.image-container {
+  width: 100%;
+  flex-shrink: 0; /* Mencegah gambar menyusut melebihi ukuran asli */
+}
+
+.product-image {
+  width: 100%;
+  height: auto; /* Membiarkan tinggi menyesuaikan proporsi gambar */
+  max-height: 35vh; /* Batas maksimum tinggi gambar agar tidak terlalu besar */
+  object-fit: cover; /* Gambar memenuhi lebar tanpa terpotong, tapi tetap proporsional */
+  border-radius: 8px 8px 0 0;
+}
+
+.content-container {
+  flex-grow: 1; /* Membiarkan konten mengisi sisa ruang */
+  position: relative;
+  z-index: 1;
+}
+
 .price-container {
   min-height: 48px; /* Sesuaikan nilai ini agar cukup untuk dua baris teks */
   display: flex;

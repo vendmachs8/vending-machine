@@ -1,6 +1,6 @@
 <template>
-  <div class="min-h-screen bg-gray-100">
-    <div class="flex items-center justify-between px-4 my-4">
+  <div class="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+    <div class="flex items-center justify-between px-4 py-4">
       <h2 
         class="subpixel-antialiased font-semibold text-4xl px-2" 
         id="featured-products">
@@ -113,7 +113,7 @@
               <button
                 @click="selectSort('all')"
                 class="flex items-center min-w-36 justify-start py-1 px-3 text-sm font-light rounded-full transition-colors"
-                :class="filter === 'all' ? 'bg-primary-200 text-white' : 'bg-white text-gray-700 hover:bg-gray-200'"
+                :class="filter === 'all' ? 'food-gradient text-white' : 'bg-white text-gray-700 hover:bg-gray-200'"
               >
                 <img src="../assets/icon/all.png" alt="All Icon" class="w-12 h-12 -ml-2 mr-2 rounded-full bg-white" />
                 <p class="text-lg">Semua</p>
@@ -121,7 +121,7 @@
               <button
                 @click="selectSort('drink')"
                 class="flex items-center min-w-36 justify-start py-1 px-3 text-sm font-light rounded-full transition-colors"
-                :class="filter === 'drink' ? 'bg-primary-200 text-white' : 'bg-white text-gray-700 hover:bg-gray-200'"
+                :class="filter === 'drink' ? 'food-gradient text-white' : 'bg-white text-gray-700 hover:bg-gray-200'"
               >
                 <img src="../assets/icon/drink.png" alt="Drink Icon" class="w-12 h-12 -ml-2 mr-2 rounded-full bg-white" />
                 <p class="text-lg">Minuman</p>
@@ -129,7 +129,7 @@
               <button
                 @click="selectSort('food')"
                 class="flex items-center min-w-36 justify-start py-1 px-3 text-sm font-light rounded-full transition-colors"
-                :class="filter === 'food' ? 'bg-primary-200 text-white' : 'bg-white text-gray-700 hover:bg-gray-200'"
+                :class="filter === 'food' ? ' text-white food-gradient' : 'bg-white text-gray-700 hover:bg-gray-200'"
               >
                 <img src="../assets/icon/food.png" alt="Food Icon" class="w-12 h-12 -ml-2 mr-2 rounded-full bg-white" />
                 <p class="text-lg">Makanan</p>
@@ -198,7 +198,7 @@
                 class="text-white px-2 py-1 rounded-xl transition text-sm"
                 :class="{
                   'bg-gray-400 cursor-not-allowed': getAvailableStock(product) === 0,
-                  'bg-green-400': getAvailableStock(product) > 0
+                  'bg-primary-200': getAvailableStock(product) > 0
                 }"
                 @click.stop="(event) => { animateProductToCart(event, product); addToCart(product); }"
               >
@@ -220,70 +220,79 @@
       <template #header>
         <div class="text-2xl font-bold">Menu</div>
       </template>
-      <div class="flex flex-col gap-4">
-        <p v-if="loggedInUser" class="text-lg font-semibold text-white mb-1">
-          Hai {{ loggedInUser }}
+
+      <div class="flex flex-col gap-4 text-white text-center">
+        <p v-if="loggedInUser" class="text-lg font-semibold mb-1 text-black">
+          ID: {{ loggedInUser }}
         </p>
         <button
           @click="navigateTo('/admin')"
-          class="w-full text-left py-2 px-4 bg-black rounded-full"
+          class="w-full py-2 px-4 bg-black rounded-full"
         >
           Admin
         </button>
         <button
           @click="navigateTo('/login')"
-          class="w-full text-left py-2 px-4 bg-black rounded-full"        >
+          class="w-full py-2 px-4 bg-black rounded-full"        >
           Login
         </button>
         <button
           @click="navigateTo('/status')"
-          class="w-full text-left py-2 px-4 bg-black rounded-full"        >
+          class="w-full py-2 px-4 bg-black rounded-full"        >
           Status
         </button>
       </div>
+
     </Drawer>
 
     <!-- Drawer Pop -->
     <Drawer
       v-model:visible="isDrawerVisible"
       position="bottom"
-      style="height: auto"
+      style="height: auto;"
     >
       <template #header>
-        <div v-if="selectedProduct" class="text-2xl font-bold">
-          {{ selectedProduct.name }}
-        </div>
+        <p></p>
       </template>
-      <div v-if="selectedProduct" class="p-4">
-        <img
-          :src="selectedProduct.image"
-          alt="selectedProduct.name"
-          class="animate-pulse w-full h-full object-cover rounded-md mb-4"
-        />
-        <p class="text-lg text-gray-500 mt-2">{{ selectedProduct.desc }}</p>
-        <p class="text-sm text-gray-500 mt-2">
-          Rak: {{ selectedProduct.rak }} | Stok: {{ getAvailableStock(selectedProduct) }}
-        </p>
-        <div class="mt-4 flex justify-center items-center gap-2">
-          <p v-if="selectedProduct.discount > 0" class="text-red-600 font-bold text-2xl">Rp{{ getDiscountedPrice(selectedProduct) }}</p>
-          <p v-if="selectedProduct.discount > 0" class="text-gray-500 line-through text-lg">Rp{{ selectedProduct.price }}</p>
-          <p v-else class="text-gray-600 font-bold text-2xl">Rp{{ selectedProduct.price }}</p>
+      
+      <div v-if="selectedProduct">
+        <div class="image-container">
+          <img
+            :src="selectedProduct.image"
+            alt="selectedProduct.name"
+            class="product-image"
+          />
         </div>
-        <button
-          :disabled="getAvailableStock(selectedProduct) === 0"
-          class="mt-4 text-white px-4 py-2 rounded-md transition w-full"
-          :class="{ 'bg-gray-400 cursor-not-allowed': getAvailableStock(selectedProduct) === 0, 'bg-primary-500': getAvailableStock(selectedProduct) > 0 }"
-          @click="
-            (event) => {
-              closeDrawer(selectedProduct);
-              animateProductToCart(event, selectedProduct);
-              addToCart(selectedProduct);
-            }
-          "
-        >
-          <i class="pi pi-shopping-cart mr-2"></i>
-          Add to Cart
-        </button>
+        
+        <div class="backdrop-blur-lg bg-white px-2 py-6 rounded-3xl">
+          <div v-if="selectedProduct" class="text-2xl font-bold">
+            {{ selectedProduct.name }}
+          </div>
+          <div class="mt-2 flex justify-left items-center gap-2">
+            <p v-if="selectedProduct.discount > 0" class="text-red-600 font-bold text-2xl">Rp{{ getDiscountedPrice(selectedProduct) }}</p>
+            <p v-if="selectedProduct.discount > 0" class="text-gray-500 line-through text-lg">Rp{{ selectedProduct.price }}</p>
+            <p v-else class="text-gray-600 font-bold text-2xl">Rp{{ selectedProduct.price }}</p>
+          </div>
+          <p class="text-md text-gray-500 mt-2">{{ selectedProduct.desc }}</p>
+          <p class="text-sm text-gray-500 mt-2">
+            Rak: {{ selectedProduct.rak }} | Stok: {{ getAvailableStock(selectedProduct) }}
+          </p>
+          <button
+            :disabled="getAvailableStock(selectedProduct) === 0"
+            class="mt-4 text-white px-4 py-4 rounded-full transition w-full -mb-20 checkout-gradient"
+            :class="{ 'bg-gray-400 cursor-not-allowed': getAvailableStock(selectedProduct) === 0, 'bg-primary-500': getAvailableStock(selectedProduct) > 0 }"
+            @click="
+              (event) => {
+                closeDrawer(selectedProduct);
+                animateProductToCart(event, selectedProduct);
+                addToCart(selectedProduct);
+              }
+            "
+          >
+            <i class="pi pi-shopping-cart mr-2"></i>
+            Add to Cart
+          </button>
+        </div>
       </div>
     </Drawer>
 
@@ -291,63 +300,74 @@
     <Drawer
       v-model:visible="isCartDrawerVisible"
       position="bottom"
-      style="overflow-y: auto; max-height: 75%; height: auto;"
+      style="overflow-y: auto; max-height: 85%; height: auto;"
+      class="-mb-5"
     >
       <template #header> 
         <div class="text-2xl font-bold">Cart</div>
       </template>
       <div class="p-0">
-        <div v-if="cartItems.length > 0"  >
-          <div
-            v-for="(item, index) in cartItems"
-            :key="index"
-            class="flex items-center justify-between bg-white max-h-24 w-full rounded-xl overscroll-auto my-3"
-          >
-            <img
-              :src="item.product.image"
-              alt="product.name"
-              class="w-24 h-24 object-cover rounded-md "
-            />
-            <div class="grid grid-flow-row min-w-24 max-w-24 items-center">
-              <span class="text-left mx-2">{{ item.product.name }}</span>
-              <div class="grid grid-flow-col">
-                <p class="text-left ml-2 text-gray-400">Rak  :</p>
-                <p class="text-left mr-8">{{ item.product.rak }}</p>
-              </div>
-              
+        <div v-if="cartItems.length > 0">
+          <div class="relative overflow-y-auto" >
+            <div
+          v-for="(item, index) in cartItems"
+          :key="index"
+          class="flex items-center justify-between bg-white max-h-24 w-full rounded-r-2xl overflow-y-clip my-3" 
+          style="border-top-left-radius: 40px; border-bottom-left-radius: 40px;"
+        >
+          <img
+            :src="item.product.image"
+            alt="product.name"
+            class="w-28 h-28 object-cover rounded-md"
+          />
+          <div class="grid grid-flow-row min-w-24 max-w-24 items-center -ml-4">
+            <span class="truncate text-left mx-2">{{ item.product.name }}</span>
+            <div class="grid grid-flow-col">
+              <p class="text-left ml-2 text-gray-400">Rak :</p>
+              <p class="text-left mr-8">{{ item.product.rak }}</p>
             </div>
-            <div class="flex items-center gap-2">
-              <button
-                class="px-1 py-0 bg-white border border-gray-300 rounded-full"
-                @click="decreaseQuantity(item)"
-              >
-                <i class="pi pi-minus" />
-              </button>
-              <span v-if="item.quantity < 10">{{ `0${item.quantity}` }}</span>
-              <span v-else>{{ item.quantity }}</span>
-              <button
-                class="px-1 py-0 bg-primary-200 rounded-full"
-                :disabled="getAvailableStock(item.product) <= 0"
-                @click="increaseQuantity(item)"
-              >
-                <i class="pi pi-plus" />
-              </button>
-            </div>
-            <div class="ml-3 mr-2 text-right">
-              <span v-if="item.product.discount > 0" class="font-bold text-red-600">Rp{{ getDiscountedPrice(item.product) * item.quantity }}</span>
-              <span v-if="item.product.discount > 0" class="block text-gray-500 line-through text-sm">Rp{{ item.product.price * item.quantity }}</span>
-              <span v-else class="font-bold">Rp{{ item.product.price * item.quantity }}</span>
+            
+          </div>
+          <div class="flex items-center gap-3 -ml-8 -mr-4">
+            <button
+              class="px-1.5 py-0.5 border rounded-full"
+              :class="{
+                'bg-white border-gray-400' : getAvailableStock(item.product) > 0, 
+                'bg-red-200' : getAvailableStock(item.product) <= 0
+              }"
+              @click="decreaseQuantity(item)"
+            >
+              <i class="pi pi-minus" />
+            </button>
+            <span v-if="item.quantity < 10">{{ `0${item.quantity}` }}</span>
+            <span v-else>{{ item.quantity }}</span>
+            <button
+              class="px-1.5 py-0.5 rounded-full"
+              :class="{
+                'bg-primary-200' : getAvailableStock(item.product) > 0, 
+                'bg-gray-400' : getAvailableStock(item.product) <= 0
+              }"
+              :disabled="getAvailableStock(item.product) <= 0"                
+              @click="increaseQuantity(item)"
+            >
+              <i class="pi pi-plus" />
+            </button>
+          </div>
+          <div class="mr-6 max-w-14">
+            <span v-if="item.product.discount > 0" class="font-bold text-red-600">Rp{{ getDiscountedPrice(item.product) * item.quantity }}</span>
+            <span v-if="item.product.discount > 0" class="block text-gray-500 line-through text-sm">Rp{{ item.product.price * item.quantity }}</span>
+            <span v-else class="font-bold">Rp{{ item.product.price * item.quantity }}</span>
+          </div>
             </div>
           </div>
-
-          <div class="sticky -bottom-5 z-50 bg-surface-100 py-4">
+          <div class="sticky bottom-0 z-50 bg-surface-100 py-4">
             <div class="flex justify-between py-3 ">
               <p class="text-gray-400">Sub-total: </p>              
-              <p class="font-bold">Rp.{{ totalPaymentWithPromo }}</p>
+              <p class="font-bold">Rp.{{ originalSubtotal }}</p>
             </div>
             <div class="flex justify-between py-3 ">
               <p class="text-gray-400">Diskon: </p>
-              <p class="font-bold">Rp.0</p>
+              <p class="font-bold text-red-500">Rp.{{ totalDiscount }}</p>
             </div>
             <div class="font-bold flex justify-between border-t-2 border-gray-200 py-3">
               <p>Total: </p>
@@ -358,7 +378,7 @@
             <div class="mt-4">
               <Button
                 label="Checkout"
-                class="w-full p-button-primary h-16 rounded-full"
+                class="w-full p-button-primary h-16 rounded-full checkout-gradient"
                 :loading="isLoadingPayment"
                 @click="proceedToPayment"
               />
@@ -366,7 +386,7 @@
           </div>
           
         </div>
-        <div v-else class="text-center text-gray-500">Your cart is empty.</div>
+        <div v-else class="text-center text-gray-500 pb-10">Your cart is empty.</div>
       </div>
     </Drawer>
 
@@ -467,6 +487,16 @@ export default {
     const sortBy = ref('default');
     const isSortExtended = ref(false);
 
+    const originalSubtotal = computed(() => {
+      return cartItems.value.reduce((total, item) => {
+        return total + item.product.price * item.quantity; 
+      }, 0); 
+    });
+
+    const totalDiscount = computed(() => {
+      return originalSubtotal.value - totalPaymentWithPromo.value; 
+    });
+
     const toggleSortOption = () => {
       isSortExtended.value = !isSortExtended.value;
       if (isSortExtended.value) {
@@ -479,7 +509,12 @@ export default {
 
     const setSortOption = (option) => {
       sortBy.value = option;
-      showSortOptions.value = false;
+      isSortExtended.value = !isSortExtended.value;
+      if (isSortExtended.value) {
+        showSortOptions.value = true;
+      } else {
+        showSortOptions.value = false;
+      }
       updateSortedProducts();
       resetInactivityTimer();
     };
@@ -882,6 +917,9 @@ export default {
       isCartDrawerVisible.value = !isCartDrawerVisible.value;
       if (isCartDrawerVisible.value && cartCount.value > 0){
         logActivity("A003");
+        document.body.classList.add("drawer-open"); 
+      } else {
+        document.body.classList.remove("drawer-close"); 
       }
       resetInactivityTimer();
     };
@@ -953,6 +991,8 @@ export default {
     });
 
     return {
+      originalSubtotal,
+      totalDiscount, 
       isSortExtended,
       showSortOptions,
       sortBy,
@@ -1006,6 +1046,32 @@ export default {
 </script>
 
 <style>
+/* Tambahkan class ini di style section yang sudah ada */
+.checkout-gradient {
+  background: linear-gradient(60deg, #4CAF50, #2196F3, #4CAF50);
+  background-size: 200% 200%;
+  animation: gradientAnimation 5s ease infinite;
+}
+
+.food-gradient {  
+  background: linear-gradient(60deg, #33BFFF, #33BFFF, #00ccff);
+  background-size: 200% 200%;
+  animation: gradientAnimation 10s ease infinite;
+}
+
+
+@keyframes gradientAnimation {
+  0% {
+    background-position: 0% 25%;
+  }
+  50% {
+    background-position: 100% 75%;
+  }
+  100% {
+    background-position: 0% 25%;
+  }
+}
+
 .animating-product {
   z-index: 1100;
   pointer-events: none;
@@ -1091,4 +1157,6 @@ export default {
 .sort-button.extended .text {
   opacity: 1;
 }
+
 </style>
+
