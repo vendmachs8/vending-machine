@@ -13,8 +13,77 @@
     </div> -->
 
     <!-- Promotion Card -->
+    const proceedToPayment = async () => {
+      isLoadingPayment.value = true;
+      clearTimeout(inactivityTimeout);
+      setTimeout(() => {
+        showQRCode.value = true;
+      }, 3000);
+      setTimeout(async () => {
+        showPaymentSuccessModal.value = true;
 
+        try {
+          for (const item of cartItems.value) {
+            const productRef = dbRef(db, `products/${item.product.id}`);
+            const newStock = item.product.stock - item.quantity;
+            const updatedInventoryStatus = determineInventoryStatus(newStock);
 
+            await update(productRef, {
+              stock: newStock >= 0 ? newStock : 0,
+              inventoryStatus: updatedInventoryStatus
+            });
+          }
+          toast.add({ severity: "success", summary: "Stock Updated", detail: "Product stock has been updated successfully.", life: 3000 });
+
+          const receiptsRef = dbRef(db, "receipts");
+          const newReceiptRef = push(receiptsRef);
+          const receiptData = {
+            timestamp: new Date().toISOString(),
+            items: cartItems.value.map(item => ({
+              id: item.product.id,
+              name: item.product.name,
+              price: item.product.price,
+              totalPrice: getDiscountedPrice(item.product) * item.quantity,
+              quantity: item.quantity,
+              rak: item.product.rak,
+              discount: item.product.discount || 0
+            })),
+            grandTotal: totalPaymentWithPromo.value,
+            usedVoucher: promoDiscount.value > 0 ? true : false,
+            voucherDiscount: promoDiscount.value
+          };
+          await set(newReceiptRef, receiptData);
+          toast.add({ severity: "success", summary: "Receipt Saved", detail: "Transaction receipt has been saved.", life: 3000 });
+
+          await logActivity("A005");
+
+          for (const item of cartItems.value) {
+            const rakNumber = String(item.product.rak).padStart(3, "0");
+            const activityCode = `Q${rakNumber}`;
+            const description = `OUT:${item.product.name}`;
+            for (let i = 0; i < item.quantity; i++) {
+              console.log(`Logging activity ${activityCode} for ${description}`);
+              await logActivity(activityCode, description);
+            }
+          }
+
+          updateSortedProducts();
+        } catch (error) {
+          console.error("Error during payment:", error);
+          toast.add({ severity: "error", summary: "Payment Error", detail: "Failed to process payment or save receipt.", life: 3000 });
+        }
+
+        cartItems.value = [];
+        cartCount.value = 0;
+        totalPayment.value = 0;
+        promoDiscount.value = 0;
+        toggleCartDrawer();
+        isLoadingPayment.value = false;
+        showQRCode.value = false;
+        resetInactivityTimer();
+      }, 6000);
+    };
+    
     <!-- Featured Products -->
     <section class="container mx-auto">
       <!-- Sticky Bar with Search and Sort -->

@@ -452,6 +452,7 @@ import qrcodeImage from "../assets/qrcode.png";
 import { db } from "../firebase";
 import { onValue, ref as dbRef, update, push, set, get } from "firebase/database";
 import { useToast } from "primevue/usetoast";
+import CryptoJS from "crypto-js";
 
 export default {
   setup() {
@@ -836,77 +837,114 @@ export default {
       }
     };
 
+    const calculateSignature = (payload) => {
+      const { va, apiKey } = {
+        va: "0000009697568516",
+        apiKey: "SANDBOX1CEC5F8E-9686-423F-8716-B47BA42A4CEE",
+      };
+      const body = JSON.stringify(payload);
+      const bodyHash = CryptoJS.HmacSHA256(body, apiKey).toString(CryptoJS.enc.Hex);
+      const stringToSign = `POST:${va}:${bodyHash}:${apiKey}`;
+      return CryptoJS.HmacSHA256(stringToSign, apiKey).toString(CryptoJS.enc.Hex);
+    };
+
     const proceedToPayment = async () => {
       isLoadingPayment.value = true;
-      clearTimeout(inactivityTimeout);
-      setTimeout(() => {
-        showQRCode.value = true;
-      }, 3000);
-      setTimeout(async () => {
-        showPaymentSuccessModal.value = true;
+      try {
+        const payload = {
+          name: "Pembelian Produk",
+          amount: totalPaymentWithPromo.value,
+          notifyUrl: "https://vendmach-vendmachs8s-projects.vercel.app/callback",
+          referenceId: `ORDER-${new Date().getTime()}`,
+          paymentMethod: "qris",
+          va: "0000009697568516",
+        };
 
-        try {
+        const signature = calculateSignature(payload);
+
+        const response = await fetch("https://sandbox.ipaymu.com/api/v2/payment", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "va": "0000009697568516",
+            "signature": signature,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await response.json();
+        if (data.Status === 200) {
+          showQRCode.value = true;
+          qrCode.value = data.Data.QrImage || data.Data.Url; // Gunakan QrImage atau Url dari respons
+        } else {
+          toast.add({
+            severity: "error",
+            summary: "Payment Error",
+            detail: data.Message || "Gagal memproses pembayaran",
+            life: 3000,
+          });
+          isLoadingPayment.value = false;
+          return;
+        }
+
+        setTimeout(async () => {
+          showQRCode.value = false;
+          showPaymentSuccessModal.value = true;
+
+          // Update stok produk di Firebase
           for (const item of cartItems.value) {
             const productRef = dbRef(db, `products/${item.product.id}`);
             const newStock = item.product.stock - item.quantity;
             const updatedInventoryStatus = determineInventoryStatus(newStock);
-
             await update(productRef, {
               stock: newStock >= 0 ? newStock : 0,
-              inventoryStatus: updatedInventoryStatus
+              inventoryStatus: updatedInventoryStatus,
             });
           }
-          toast.add({ severity: "success", summary: "Stock Updated", detail: "Product stock has been updated successfully.", life: 3000 });
 
+          // Simpan receipt ke Firebase
           const receiptsRef = dbRef(db, "receipts");
           const newReceiptRef = push(receiptsRef);
           const receiptData = {
             timestamp: new Date().toISOString(),
-            items: cartItems.value.map(item => ({
+            items: cartItems.value.map((item) => ({
               id: item.product.id,
               name: item.product.name,
               price: item.product.price,
               totalPrice: getDiscountedPrice(item.product) * item.quantity,
               quantity: item.quantity,
               rak: item.product.rak,
-              discount: item.product.discount || 0
+              discount: item.product.discount || 0,
             })),
             grandTotal: totalPaymentWithPromo.value,
-            usedVoucher: promoDiscount.value > 0 ? true : false,
-            voucherDiscount: promoDiscount.value
+            usedVoucher: promoDiscount.value > 0,
+            voucherDiscount: promoDiscount.value,
+            paymentMethod: "QRIS",
+            referenceId: payload.referenceId,
           };
           await set(newReceiptRef, receiptData);
-          toast.add({ severity: "success", summary: "Receipt Saved", detail: "Transaction receipt has been saved.", life: 3000 });
 
-          await logActivity("A005");
-
-          for (const item of cartItems.value) {
-            const rakNumber = String(item.product.rak).padStart(3, "0");
-            const activityCode = `Q${rakNumber}`;
-            const description = `OUT:${item.product.name}`;
-            for (let i = 0; i < item.quantity; i++) {
-              console.log(`Logging activity ${activityCode} for ${description}`);
-              await logActivity(activityCode, description);
-            }
-          }
-
-          updateSortedProducts();
-        } catch (error) {
-          console.error("Error during payment:", error);
-          toast.add({ severity: "error", summary: "Payment Error", detail: "Failed to process payment or save receipt.", life: 3000 });
-        }
-
-        cartItems.value = [];
-        cartCount.value = 0;
-        totalPayment.value = 0;
-        promoDiscount.value = 0;
-        toggleCartDrawer();
+          // Reset keranjang
+          cartItems.value = [];
+          cartCount.value = 0;
+          totalPayment.value = 0;
+          promoDiscount.value = 0;
+          toggleCartDrawer();
+          isLoadingPayment.value = false;
+          resetInactivityTimer();
+        }, 3000); // Simulasi waktu pemindaian QRIS
+      } catch (error) {
+        console.error("Error during payment:", error);
+        toast.add({
+          severity: "error",
+          summary: "Payment Error",
+          detail: "Gagal memproses pembayaran",
+          life: 3000,
+        });
         isLoadingPayment.value = false;
-        showQRCode.value = false;
-        resetInactivityTimer();
-      }, 6000);
+      }
     };
-
+    
     const determineInventoryStatus = (stock) => {
       if (stock > 5) return "INSTOCK";
       if (stock > 0 && stock <= 5) return "LOWSTOCK";

@@ -13,6 +13,7 @@
     "@primevue/themes": "^4.2.5",
     "axios": "^1.8.4",
     "colorthief": "^2.6.0",
+    "crypto-js": "^4.2.0",
     "firebase": "^11.5.0",
     "firebase-admin": "^13.2.0",
     "firebase-functions": "^6.3.2",
