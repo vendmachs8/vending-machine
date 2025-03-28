@@ -4,7 +4,7 @@
       <h2 
         class="subpixel-antialiased font-semibold text-4xl px-2" 
         id="featured-products">
-        Home
+        Homee
       </h2>
 
       <button @click="toggleMenuDrawer">
