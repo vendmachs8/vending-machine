@@ -492,7 +492,7 @@ export default {
     const isCheckingPayment = ref(false);
 
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
-  (import.meta.env.PROD ? 'https://vendmach-vendmachs8s-projects.vercel.app' : 'http://localhost:3000');
+  (import.meta.env.PROD ? ' https://22b1-114-10-46-80.ngrok-free.app' : 'http://localhost:3000');
 
     const selectedPaymentChannel = ref(null); 
     const selectedPaymentMethod = ref(null); 
@@ -917,10 +917,11 @@ export default {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
           },
           body: JSON.stringify(paymentData)
         });
+
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
         const result = await response.json();
         console.log('Payment Result:', result);
