@@ -1037,12 +1037,16 @@ export default {
     const checkTransactionStatus = async (refId) => {
         if (!refId) return;
         try {
-            const response = await fetch('http://localhost:3000/api/check-transaction', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ referenceId: refId })
+            const response = await fetch(`${API_BASE_URL}/api/check-transaction`, {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify({ referenceId: refId }),
+              credentials: 'include' // Jika menggunakan credentials
             });
-            
+
             const status = await response.json();
             console.log('Transaction Status:', status);
 
