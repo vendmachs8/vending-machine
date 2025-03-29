@@ -1,11 +1,23 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [vue()],
   server: {
-    host: true, // Ini akan memungkinkan akses dari jaringan
-    port: 5174, // Port yang digunakan
-  },
+    host: '0.0.0.0', // Dengarkan semua interface
+    port: 5001,
+    strictPort: true, // Pastikan port 5001 selalu digunakan
+    hmr: {
+      clientPort: 5001 // Penting untuk HMR di jaringan lokal
+    },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      }
+    },
+    cors: true // Aktifkan CORS penuh untuk development
+  }
 });

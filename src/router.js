@@ -4,6 +4,8 @@ import Home from "./components/Home.vue";
 import Admin from "./components/Admin.vue";
 import Login from "./components/Login.vue";
 import StatusMonitor from "./components/StatusMonitor.vue";
+import ThankYou from "./components/ThankYou.vue";
+
 const routes = [
   {
     path: "/",
@@ -25,6 +27,11 @@ const routes = [
     name: "Status",
     component: StatusMonitor, 
   },
+  {
+    path: "/thank-you", 
+    name: "ThankYou", 
+    component: ThankYou 
+  }
 
 ];
 

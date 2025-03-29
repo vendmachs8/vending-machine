@@ -80,7 +80,7 @@
               username: username.value,
               password: password.value,
               status: "S003",
-              statusChanges: {}, // Inisialisasi kosong untuk akun baru
+              statusChanges: {}, // Inisialisasi kosong untuk ipaymkun baru
             });
           } else {
             // Akun lama: Hanya update status, pertahankan data lain

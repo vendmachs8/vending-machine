@@ -39,6 +39,7 @@ import Badge from "primevue/badge";
 import OverlayBadge from "primevue/overlaybadge";
 import { Drawer } from "primevue";
 import FileUpload from "primevue/fileupload";
+import ProgressSpinner from "primevue/progressspinner";
 
 const app = createApp(App);
 
@@ -75,6 +76,7 @@ app.component("Badge", Badge); // Register Badge component
 app.component("OverlayBadge", OverlayBadge); // Register OverlayBadge component
 app.component("Drawer", Drawer); // Register Drawer component
 app.component("FileUpload", FileUpload); // Register FileUpload component
+app.component("ProgressSpinner", ProgressSpinner); 
 
 // Use PrimeVue and ToastService
 app.use(PrimeVue, { theme: "none" });
