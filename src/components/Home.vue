@@ -491,9 +491,8 @@ export default {
     const paymentResult = ref(null);
     const isCheckingPayment = ref(false);
 
-    // Gunakan environment variable
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
-      (import.meta.env.PROD ? 'https://your-vercel-app.vercel.app' : 'http://localhost:3000');
+  (import.meta.env.PROD ? 'https://vendmach-vendmachs8s-projects.vercel.app' : 'http://localhost:3000');
 
     const selectedPaymentChannel = ref(null); 
     const selectedPaymentMethod = ref(null); 
