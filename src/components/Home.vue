@@ -491,6 +491,10 @@ export default {
     const paymentResult = ref(null);
     const isCheckingPayment = ref(false);
 
+    // Gunakan environment variable
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+      (import.meta.env.PROD ? 'https://your-vercel-app.vercel.app' : 'http://localhost:3000');
+
     const selectedPaymentChannel = ref(null); 
     const selectedPaymentMethod = ref(null); 
 
@@ -910,12 +914,13 @@ export default {
         
         console.log('Sending payment data:', paymentData);
 
-        const response = await fetch('http://localhost:3000/api/ipaymu-payment', {
+        const response = await fetch(`${API_BASE_URL}/api/ipaymu-payment`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(paymentData),
-          mode: 'cors', 
-          credentials: 'include' 
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify(paymentData)
         });
 
         const result = await response.json();
