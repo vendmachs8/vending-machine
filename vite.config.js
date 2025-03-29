@@ -8,10 +8,14 @@ export default defineConfig({
     port: 5001,
     proxy: {
       '/api': {
-        target: 'http://localhost:3000', // Sesuaikan dengan port server.js Anda
+        target: 'http://localhost:3000',
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, '')
+        rewrite: (path) => path.replace(/^\/api/, ''),
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
+        }
       }
     }
   }
