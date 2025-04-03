@@ -178,7 +178,11 @@
             class="rounded-xl -ml-3 mr-auto justify-start px-4"
             style="border-radius: 0 8px 8px 0"
           />
-          <h3 class="text-lg mt-2">{{ product.name }}</h3>
+          <div class="flex flex-row">
+            <h3 class="text-lg mt-2">{{ product.name }}</h3>
+            <h3>{{ product.stock }}</h3>
+          </div>
+          
           <div class="flex justify-between items-center mt-2 text-xl">
             <div class="price-container">
               <p v-if="product.discount > 0" class="text-red-600 font-bold">Rp{{ getDiscountedPrice(product) }}</p>
@@ -373,7 +377,7 @@
         <Button label="Apply" class="mt-4 w-full p-button-primary" @click="applyPromoCode" />
       </div>
     </Dialog>
-
+<!-- 
     <Dialog
       v-model:visible="showQRCode"
       header="Payment Details"
@@ -402,7 +406,56 @@
           v-if="selectedPaymentMethod !== 'payment_page'"
         />
       </div>
-    </Dialog>
+    </Dialog> -->
+
+    <Dialog
+  v-model:visible="showQRCode"
+  header="Payment Details"
+  modal
+  :closable="true"
+  :style="{ width: '350px', height: 'auto' }"
+  @update:visible="(newValue) => { if (!newValue) cancelTransaction(); else stopCountdown(); }"
+>
+  <div class="p-4 text-center">
+    <p class="mb-4" v-if="selectedPaymentMethod === 'va'">
+      Silakan lakukan pembayaran melalui Virtual Account berikut:
+    </p>
+    <p class="mb-4" v-else-if="selectedPaymentMethod === 'qris'">
+      Silakan scan QRIS berikut untuk pembayaran:
+    </p>
+    <p class="mb-4" v-else>
+      Silakan selesaikan pembayaran di halaman pembayaran berikut:
+    </p>
+
+    <p class="text-lg font-bold" v-if="selectedPaymentMethod === 'va'">
+      {{ paymentNo }}
+    </p>
+    <p class="text-lg font-bold" v-else-if="selectedPaymentMethod === 'qris'">
+      <a :href="paymentUrl" target="_blank" class="text-blue-500 underline">{{ paymentUrl }}</a>
+    </p>
+    <p class="text-lg font-bold" v-else>
+      <a :href="paymentUrl" target="_blank" class="text-blue-500 underline">Buka Halaman Pembayaran</a>
+    </p>
+
+    <p class="mt-2" v-if="selectedPaymentMethod === 'va'">
+      Bank: {{ selectedPaymentChannel.toUpperCase() }}
+    </p>
+
+    <p>Total: Rp{{ totalPaymentWithPromo }}</p>
+
+    <p class="mt-4 text-sm text-gray-500">
+      Batas waktu pembayaran:
+      <span class="font-bold text-red-500">{{ formattedCountdown }}</span>
+    </p>
+
+    <Button
+      label="Complete Payment"
+      class="mt-4 w-full p-button-primary checkout-gradient"
+      :loading="isCheckingPayment"
+      @click="checkAndCompletePayment"
+    />
+  </div>
+</Dialog>
 
     <!-- Payment Success Modal -->
     <Dialog
@@ -410,36 +463,14 @@
       header="Payment Successfully"
       modal
       :closable="true"
-      :style="{ width: '300px', height: '300px' }"
+      :style="{ width: '300px', height: 'auto' }"
     >
       <div class="p-4 text-center">
         <i class="pi pi-check-circle mt-5" style="font-size: 4rem; color: #27ae60" />
         <p class="font-bold mt-6">Your payment was successful!</p>
-        <p>Please wait while we prepare your product.</p>
-      </div>
-    </Dialog>
-
-    <!-- Processing Payment Page -->
-    <Dialog 
-      v-model:visible="isProcessingPaymentPage" 
-      modal 
-      :closable="false"
-      :style="{ width: '350px', height: 'auto' }"
-    >
-      <template #header>
-        <div class="text-xl font-bold">Processing Payment</div>
-      </template>
-      <div class="p-4 text-center">
-        <ProgressSpinner 
-          style="width: 50px; height: 50px" 
-          strokeWidth="4" 
-          animationDuration=".5s"
-          class="mb-4"
-        />
-        <p class="mb-4">Please complete your payment in the new tab...</p>
-        <p class="text-sm text-gray-500">
-          Don't close this window while payment is processing
-        </p>
+        <p class="mt-2">Scan this QR code to retrieve your items:</p>
+        <img v-if="paymentResult?.qrCode" :src="paymentResult.qrCode" alt="Receipt QR Code" class="mt-4 mx-auto" />
+        <p class="mt-4 text-sm text-gray-500">Receipt Number: {{ randomReceiptNumber }}</p>
       </div>
     </Dialog>
   </div>
@@ -451,6 +482,7 @@ import { useRouter } from "vue-router";
 import { db } from "../firebase";
 import { onValue, ref as dbRef, update, push, set, get } from "firebase/database";
 import { useToast } from "primevue/usetoast";
+import QRCode from 'qrcode'; 
 
 export default {
   setup() {
@@ -491,13 +523,29 @@ export default {
     const paymentResult = ref(null);
     const isCheckingPayment = ref(false);
 
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
-  (import.meta.env.PROD ? 'https://95bc-114-10-46-80.ngrok-free.app' : 'http://localhost:3000');
+    const randomReceiptNumber = ref(''); 
+
+    const generateRandomNumber = () => {
+      return Math.floor(100000 + Math.random() * 900000).toString();
+    };
+
+    const generateQRCode = async (text) => {
+      try {
+        return await QRCode.toDataURL(text, { width: 200, margin: 1 });
+      } catch (error) {
+        console.error('Error generating QR code:', error);
+        return '';
+      }
+    };
+
+    const API_BASE_URL = ref(
+      window.location.hostname === 'localhost' 
+        ? 'http://localhost:3000' 
+        : 'http://192.168.1.27:3000'
+    );
 
     const selectedPaymentChannel = ref(null); 
     const selectedPaymentMethod = ref(null); 
-
-    const isProcessingPaymentPage = ref(false); 
 
     const paymentMethods = ref([
       { label: 'Virtual Account (VA)', value: 'va' },
@@ -540,6 +588,7 @@ export default {
             } else {
                 stopCountdown();
                 showQRCode.value = false;
+                cancelTransaction(); 
                 toast.add({
                     severity: "warn",
                     summary: "Payment Expired",
@@ -566,17 +615,24 @@ export default {
 
       if (referenceId.value) {
         try {
-          const response = await fetch(`${API_BASE_URL}/api/check-transaction`, {
-              method: 'POST',
-              headers: { 
-                  'Content-Type': 'application/json',
-                  'Accept': 'application/json'
-              },
-              body: JSON.stringify({ referenceId: refId }),
-              credentials: 'include' // This triggers the CORS issue
+          const response = await fetch(`${API_BASE_URL.value}/api/cancel-transaction`, {
+            method: 'POST',
+            mode: 'cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ referenceId: referenceId.value })
           });
           const result = await response.json();
           console.log('Cancel response from server:', result);
+          if (result.status === 'cancelled') {
+            toast.add({
+              severity: "info",
+              summary: "Transaction Cancelled",
+              detail: "Transaksi telah dibatalkan dan stok telah dikembalikan",
+              life: 3000
+            });
+          } else {
+            throw new Error('Cancellation failed on server');
+          }
         } catch (error) {
           console.error('Error notifying server of cancellation:', error);
         }
@@ -669,8 +725,10 @@ export default {
     };
 
     const getAvailableStock = (product) => {
+      // Gunakan stok tersedia yang sudah dikurangi reservedStock
       const cartItem = cartItems.value.find((item) => item.product.id === product.id);
-      return product.stock - (cartItem ? cartItem.quantity : 0);
+      const reserved = product.reservedStock || 0;
+      return product.stock - reserved - (cartItem ? cartItem.quantity : 0);
     };
 
     const resetInactivityTimer = () => {
@@ -901,7 +959,6 @@ export default {
 
     const proceedToPayment = async () => {
       isLoadingPayment.value = true;
-      isTransactionCancelled.value = false;
       try {
         const paymentData = {
           total: totalPaymentWithPromo.value,
@@ -909,51 +966,50 @@ export default {
           buyerPhone: "08123456789",
           buyerEmail: "customer@mail.com",
           paymentMethod: selectedPaymentMethod.value,
-          paymentChannel: selectedPaymentMethod.value === 'va' ? selectedPaymentChannel.value : null,
+          paymentChannel: selectedPaymentMethod.value === 'va' ? selectedPaymentChannel.value : (selectedPaymentMethod.value === 'qris' ? 'mpm' : null),
           products: cartItems.value.map(item => item.product.name),
           quantities: cartItems.value.map(item => item.quantity.toString()),
           prices: cartItems.value.map(item => getDiscountedPrice(item.product).toString()),
         };
-        
         console.log('Sending payment data:', paymentData);
 
-        const response = await fetch(`${API_BASE_URL}/api/ipaymu-payment`, {
+        const response = await fetch(`${API_BASE_URL.value}/api/ipaymu-payment`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(paymentData)
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(paymentData),
         });
-
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
         const result = await response.json();
         console.log('Payment Result:', result);
         paymentResult.value = result;
 
         if (String(result.Status) === "200") {
-          if (selectedPaymentMethod.value === 'payment_page') {
-            // Untuk Payment Page, buka di tab baru dan mulai polling
-            isProcessingPaymentPage.value = true; 
-            window.open(result.Data.Url, '_blank');
-            referenceId.value = result.Data.ReferenceId;
-            showQRCode.value = false; // Tidak perlu tampilkan QR code modal
-            startPollingTransactionStatus();
-          } else {
-            // Logika VA/QRIS yang sudah ada
-            paymentUrl.value = result.Data?.Url || "";
-            paymentNo.value = result.Data?.PaymentNo || 'Scan QRIS';
-            referenceId.value = result.Data?.ReferenceId || "";
-            showQRCode.value = true;
-            startCountdown();
-            startPollingTransactionStatus();
+          referenceId.value = result.clientReferenceId;
+          if (!referenceId.value) {
+            throw new Error("Missing reference ID from server");
           }
+
+          if (selectedPaymentMethod.value === 'payment_page') {
+            paymentUrl.value = result.Data.Url || result.Data.PaymentUrl;
+          } else if (selectedPaymentMethod.value === 'va') {
+            paymentNo.value = result.Data.PaymentNo;
+            paymentUrl.value = '';
+          } else if (selectedPaymentMethod.value === 'qris') {
+            paymentUrl.value = result.Data.QrUrl || result.Data.QRUrl || result.Data.Url;
+            paymentNo.value = '';
+          }
+
+          console.log('Using referenceId for polling:', referenceId.value);
+          localStorage.setItem('lastReferenceId', referenceId.value);
+          startPollingTransactionStatus();
+          showQRCode.value = true;
+          startCountdown();
         } else {
           toast.add({
             severity: "error",
             summary: "Payment Failed",
             detail: result.Message || "Failed to process payment",
-            life: 3000
+            life: 3000,
           });
         }
       } catch (error) {
@@ -962,7 +1018,7 @@ export default {
           severity: "error",
           summary: "Error",
           detail: "An error occurred during payment processing",
-          life: 3000
+          life: 3000,
         });
       } finally {
         isLoadingPayment.value = false;
@@ -970,23 +1026,13 @@ export default {
     };
 
     const completePayment = async (transactionId) => {
-      console.log('completePayment called with:', transactionId);
       try {
-        // Simpan amount terakhir di localStorage untuk ditampilkan di thank you page
-        localStorage.setItem('lastPaymentAmount', totalPaymentWithPromo.value);
-        
-        // Update stock dan log activity
-        for (const item of cartItems.value) {
-          const productRef = dbRef(db, `products/${item.product.id}`);
-          const newStock = item.product.stock - item.quantity;
-          const updatedInventoryStatus = determineInventoryStatus(newStock);
-          await update(productRef, { stock: newStock >= 0 ? newStock : 0, inventoryStatus: updatedInventoryStatus });
-        }
+        randomReceiptNumber.value = generateRandomNumber(); // Buat nomor acak
+        const qrCodeDataUrl = await generateQRCode(randomReceiptNumber.value); // Buat QR code
 
-        // Simpan receipt ke Firebase
-        const receiptsRef = dbRef(db, "receipts");
-        const newReceiptRef = push(receiptsRef);
+        // Simpan detail transaksi ke server
         const receiptData = {
+          receiptNumber: randomReceiptNumber.value,
           timestamp: new Date().toISOString(),
           items: cartItems.value.map(item => ({
             id: item.product.id,
@@ -1001,121 +1047,106 @@ export default {
           usedVoucher: promoDiscount.value > 0,
           voucherDiscount: promoDiscount.value,
           paymentMethod: selectedPaymentMethod.value === 'va' ? `VA ${selectedPaymentChannel.value.toUpperCase()}` : 
-                      selectedPaymentMethod.value === 'qris' ? 'QRIS MPM' : 'iPaymu Payment Page',
+                        selectedPaymentMethod.value === 'qris' ? 'QRIS MPM' : 'iPaymu Payment Page',
           transactionId: transactionId || paymentResult.value?.Data?.TransactionId || "PENDING"
         };
-        await set(newReceiptRef, receiptData);
 
-        // Bersihkan keranjang
+        // Kirim ke server untuk disimpan di Firebase
+        const response = await fetch(`${API_BASE_URL.value}/api/save-receipt`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(receiptData)
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to save receipt to server');
+        }
+
+        await logActivity("A005");
+        for (const item of cartItems.value) {
+          const rakNumber = String(item.product.rak).padStart(3, "0");
+          const activityCode = `Q${rakNumber}`;
+          const description = `OUT:${item.product.name}`;
+          for (let i = 0; i < item.quantity; i++) {
+            await logActivity(activityCode, description);
+          }
+        }
+
         cartItems.value = [];
         cartCount.value = 0;
         totalPayment.value = 0;
         promoDiscount.value = 0;
         selectedPaymentMethod.value = null;
         selectedPaymentChannel.value = null;
+        toggleCartDrawer();
+        updateSortedProducts();
 
-        toast.add({
-          severity: "success",
-          summary: "Payment Success",
-          detail: "Your transaction has been completed successfully",
-          life: 3000
-        });
-
-        if (selectedPaymentMethod.value === 'payment_page') {
-          router.push(`/thank-you?reference_id=${referenceId.value}`);
-        } else {
-          showQRCode.value = false;
-          showPaymentSuccessModal.value = true;
-        }
+        // Tampilkan dialog sukses dengan QR code
+        paymentResult.value.qrCode = qrCodeDataUrl; // Simpan QR code untuk ditampilkan
+        showPaymentSuccessModal.value = true;
+        localStorage.removeItem('lastReferenceId');
       } catch (error) {
         console.error("Error completing payment:", error);
-        toast.add({
-          severity: "error",
-          summary: "Payment Failed",
-          detail: "Failed to complete payment process",
-          life: 3000
-        });
+        toast.add({ severity: "error", summary: "Error", detail: "Failed to complete payment process", life: 3000 });
       }
     };
 
     const checkTransactionStatus = async (refId) => {
-        if (!refId) return;
-        try {
-          const response = await fetch(`${API_BASE_URL}/api/check-transaction`, {
+      try {
+        const response = await fetch(`${API_BASE_URL.value}/api/check-transaction`, {
           method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify({ referenceId: refId }),
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ referenceId: refId })
         });
 
-            const status = await response.json();
-            console.log('Transaction Status:', status);
-
-            if (status.error) {
-                console.error('Server returned an error:', status.error);
-                toast.add({
-                    severity: "error",
-                    summary: "Server Error",
-                    detail: "Terjadi masalah pada server, silakan coba lagi nanti",
-                    life: 3000
-                });
-                stopPollingTransactionStatus();
-                stopCountdown(); 
-                showQRCode.value = false;
-                isTransactionCancelled.value = true;
-                isProcessingPaymentPage.value = false;  
-                return;
-            }
-
-            if (status.status === 'berhasil') {
-                stopPollingTransactionStatus();
-                isProcessingPaymentPage.value = false; 
-                stopCountdown(); 
-                await completePayment(status.transactionId);
-
-                toast.add({
-                  severity: "success",
-                  summary: "Payment Completed",
-                  detail: "Payment has been successfully processed",
-                  life: 3000
-                });
-
-                if (selectedPaymentMethod.value === 'payment_page') {
-                  router.push('/thank-you?reference_id=' + refId);
-                }
-
-                showQRCode.value = false;
-                showPaymentSuccessModal.value = true;
-            } else if (status.status === 'gagal') {
-                stopPollingTransactionStatus();
-                isProcessingPaymentPage.value = false; 
-                stopCountdown(); 
-                toast.add({
-                    severity: "error",
-                    summary: "Payment Failed",
-                    detail: "Pembayaran gagal, silakan coba lagi",
-                    life: 3000
-                });
-                showQRCode.value = false;
-                isTransactionCancelled.value = true; 
-            }
-        } catch (error) {
-            console.error('Error checking transaction:', error);
-            isProcessingPaymentPage.value = false; 
-            toast.add({
-                severity: "error",
-                summary: "Network Error",
-                detail: "Gagal memeriksa status transaksi, periksa koneksi Anda",
-                life: 3000
-            });
+        if (!response.ok) throw new Error('Network response was not ok');
+        
+        const result = await response.json();
+        console.log('Transaction Status Check:', result);
+        
+        if (result.status === 'berhasil') {
+          stopPollingTransactionStatus();
+          stopCountdown();
+          await completePayment(result.transactionId);
+          showQRCode.value = false;
+          showPaymentSuccessModal.value = true;
+          // Bersihkan reference ID setelah selesai
+          localStorage.removeItem('lastReferenceId');
+        } else if (result.status === 'cancelled') {
+          stopPollingTransactionStatus();
+          stopCountdown();
+          showQRCode.value = false;
         }
+        // Status pending akan terus dipolling
+      } catch (error) {
+        console.error('Error checking transaction:', error);
+        throw error;
+      }
     };
 
     const startPollingTransactionStatus = () => {
       if (pollingInterval) clearInterval(pollingInterval);
-      pollingInterval = setInterval(() => checkTransactionStatus(referenceId.value), 5000);
+      
+      // Cek reference ID dari localStorage jika belum ada
+      if (!referenceId.value) {
+        referenceId.value = localStorage.getItem('lastReferenceId');
+      }
+
+      console.log('Starting polling with referenceId:', referenceId.value);
+
+      pollingInterval = setInterval(async () => {
+        if (!referenceId.value) {
+          stopPollingTransactionStatus();
+          return;
+        }
+
+        try {
+          await checkTransactionStatus(referenceId.value);
+        } catch (error) {
+          console.error('Polling error:', error);
+          // Jangan hentikan polling untuk error sementara
+        }
+      }, 5000); // Poll setiap 5 detik
     };
 
     const stopPollingTransactionStatus = () => {
@@ -1224,24 +1255,6 @@ export default {
         checkTransactionStatus(referenceId.value);
         console.log("thankyou");
       }
-      window.addEventListener('message', (event) => {
-        if (event.data.type === 'payment_completed') {
-          // Tutup modal loading jika ada
-          isProcessingPaymentPage.value = false;
-          stopPollingTransactionStatus();
-          
-          // Refresh data jika perlu
-          fetchData();
-          
-          // Tampilkan notifikasi
-          toast.add({
-            severity: "success",
-            summary: "Payment Success",
-            detail: "Your payment has been completed successfully",
-            life: 3000
-          });
-        }
-      });
     });
 
     onUnmounted(() => {
@@ -1257,7 +1270,8 @@ export default {
     });
 
     return {
-      isProcessingPaymentPage, 
+      randomReceiptNumber,
+      generateQRCode, 
       selectedPaymentMethod, 
       selectedPaymentChannel, 
       paymentMethods, 
@@ -1538,28 +1552,4 @@ export default {
     75% { height: 3.55rem; }
     100% { height: 3.5rem; }
 }
-
-.p-progress-spinner-circle {
-  stroke: linear-gradient(60deg, #4CAF50, #2196F3);
-  animation: p-progress-spinner-dash 1.5s ease-in-out infinite;
-}
-
-@keyframes p-progress-spinner-dash {
-  0% {
-    stroke-dasharray: 1, 200;
-    stroke-dashoffset: 0;
-  }
-  50% {
-    stroke-dasharray: 89, 200;
-    stroke-dashoffset: -35;
-  }
-  100% {
-    stroke-dasharray: 89, 200;
-    stroke-dashoffset: -124;
-  }
-}
-
 </style>
-
-
-
