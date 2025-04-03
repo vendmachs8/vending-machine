@@ -546,7 +546,7 @@ export default {
 
     const API_BASE_URL = ref(
       process.env.NODE_ENV === 'development' 
-        ? 'http://localhost:3000' 
+        ? 'https://d750-114-10-46-80.ngrok-free.app' 
         : 'https://vendmach-vendmachs8s-projects.vercel.app' // Gunakan domain Vercel di production
     );
 
