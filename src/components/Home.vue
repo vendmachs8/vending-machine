@@ -538,10 +538,16 @@ export default {
       }
     };
 
+    // const API_BASE_URL = ref(
+    //   window.location.hostname === 'localhost' 
+    //     ? 'http://localhost:3000' 
+    //     : 'http://192.168.1.27:3000'
+    // );
+
     const API_BASE_URL = ref(
-      window.location.hostname === 'localhost' 
+      process.env.NODE_ENV === 'development' 
         ? 'http://localhost:3000' 
-        : 'http://192.168.1.27:3000'
+        : 'https://vendmach-vendmachs8s-projects.vercel.app' // Gunakan domain Vercel di production
     );
 
     const selectedPaymentChannel = ref(null); 
@@ -1553,3 +1559,5 @@ export default {
     100% { height: 3.5rem; }
 }
 </style>
+
+
