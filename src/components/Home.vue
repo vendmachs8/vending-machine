@@ -492,7 +492,7 @@ export default {
     const isCheckingPayment = ref(false);
 
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
-  (import.meta.env.PROD ? ' https://22b1-114-10-46-80.ngrok-free.app' : 'http://localhost:3000');
+  (import.meta.env.PROD ? 'https://95bc-114-10-46-80.ngrok-free.app' : 'http://localhost:3000');
 
     const selectedPaymentChannel = ref(null); 
     const selectedPaymentMethod = ref(null); 
@@ -566,10 +566,14 @@ export default {
 
       if (referenceId.value) {
         try {
-          const response = await fetch('http://localhost:3000/api/cancel-transaction', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ referenceId: referenceId.value })
+          const response = await fetch(`${API_BASE_URL}/api/check-transaction`, {
+              method: 'POST',
+              headers: { 
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json'
+              },
+              body: JSON.stringify({ referenceId: refId }),
+              credentials: 'include' // This triggers the CORS issue
           });
           const result = await response.json();
           console.log('Cancel response from server:', result);
@@ -1037,15 +1041,14 @@ export default {
     const checkTransactionStatus = async (refId) => {
         if (!refId) return;
         try {
-            const response = await fetch(`${API_BASE_URL}/api/check-transaction`, {
-              method: 'POST',
-              headers: { 
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-              },
-              body: JSON.stringify({ referenceId: refId }),
-              credentials: 'include' // Jika menggunakan credentials
-            });
+          const response = await fetch(`${API_BASE_URL}/api/check-transaction`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ referenceId: refId }),
+        });
 
             const status = await response.json();
             console.log('Transaction Status:', status);
