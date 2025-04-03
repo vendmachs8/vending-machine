@@ -541,7 +541,7 @@ export default {
     const API_BASE_URL = ref(
       window.location.hostname === 'development' 
         ? 'http://localhost:3000' 
-        : 'http://192.168.1.27:3000'
+        : 'https://vendmach-vendmachs8s-projects.vercel.app'
     );
 
     // const API_BASE_URL = ref(
