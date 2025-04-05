@@ -61,9 +61,16 @@ export default {
     const username = ref('');
     const password = ref('');
     const loading = ref(false);
-    const isRegisterMode = ref(false); // Toggle antara login dan register
+    const isRegisterMode = ref(false);
     const loggedInUser = ref(localStorage.getItem('loggedInUser') || '');
     const isFullyAuthenticated = computed(() => localStorage.getItem('isFullyAuthenticated') === 'true');
+
+    // Define API_BASE_URL correctly and ensure it’s a string
+    const API_BASE_URL = ref(
+      window.location.hostname === 'localhost' // Use 'localhost' instead of 'development'
+        ? 'http://localhost:3000'
+        : 'https://9f89-114-10-46-80.ngrok-free.app'
+    );
 
     // Fungsi Login
     const handleLogin = async () => {
@@ -104,15 +111,23 @@ export default {
       loading.value = true;
 
       try {
-        const response = await fetch(`${API_BASE_URL}/api/check-username`, {
+        // Use .value to access the ref’s value
+        const response = await fetch(`${API_BASE_URL.value}/api/check-username`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: username.value })
+          body: JSON.stringify({ username: username.value }),
         });
-        const { exists } = await response.json();
+
+        // Check if the response is OK before parsing JSON
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const { exists } = data;
+
         if (exists) {
           toast.add({ severity: 'error', summary: 'Registration Failed', detail: 'Username already exists', life: 3000 });
-          loading.value = false;
           return;
         }
 
@@ -129,7 +144,7 @@ export default {
         password.value = '';
       } catch (error) {
         console.error('Error during registration:', error);
-        toast.add({ severity: 'error', summary: 'Error', detail: 'Registration failed', life: 3000 });
+        toast.add({ severity: 'error', summary: 'Error', detail: `Registration failed: ${error.message}`, life: 3000 });
       } finally {
         loading.value = false;
       }
@@ -173,8 +188,6 @@ export default {
     const goToAdmin = () => {
       router.push('/admin');
     };
-
-    
 
     return {
       username,
