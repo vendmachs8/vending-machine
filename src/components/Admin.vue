@@ -285,6 +285,9 @@
                   <button class="text-blue-500" @click="downloadReceiptAsPDF(receipt)">
                     <i class="pi pi-download"></i>
                   </button>
+                  <button class="text-green-500" @click="showReceiptQRCode(receipt)">
+                    <i class="pi pi-qrcode"></i>
+                  </button>
                 </td>
               </tr>
             </tbody>
@@ -361,6 +364,66 @@
       </div>
     </Dialog>
 
+    <!-- QR Code Receipt Detail Dialog -->
+    <Dialog v-model:visible="isQRCodeDetailDialogVisible" header="Receipt QR Code & Details" modal :style="{ width: '90%', 'max-width': '600px' }">
+      <div class="p-4">
+        <div v-if="selectedReceipt" class="flex flex-col gap-4">
+          <!-- QR Code -->
+          <div class="text-center">
+            <img :src="qrCodeDataUrl" alt="Receipt QR Code" class="mx-auto mb-4 w-48 h-48 object-contain" v-if="qrCodeDataUrl" />
+            <p v-else class="text-gray-500">Generating QR Code...</p>
+            <p class="text-sm text-gray-500">Scan this QR Code for receipt verification</p>
+          </div>
+
+          <!-- Receipt Details -->
+          <div class="border-t pt-4">
+            <h3 class="text-lg font-semibold mb-2">Transaction Details</h3>
+            <div class="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <p><strong>Receipt #:</strong> {{ selectedReceipt.receiptNumber }}</p>
+                <p><strong>Date:</strong> {{ new Date(selectedReceipt.timestamp).toLocaleDateString() }}</p>
+                <p><strong>Time:</strong> {{ new Date(selectedReceipt.timestamp).toLocaleTimeString() }}</p>
+                <p><strong>User ID:</strong> {{ loggedInUser }}</p>
+              </div>
+              <div>
+                <p><strong>Location:</strong> Universitas Brawijaya</p>
+                <p><strong>Voucher:</strong> {{ selectedReceipt.usedVoucher ? `Yes (${selectedReceipt.voucherDiscount}%)` : 'No' }}</p>
+                <p><strong>Grand Total:</strong> Rp{{ selectedReceipt.grandTotal }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Items List -->
+          <div class="border-t pt-4">
+            <h3 class="text-lg font-semibold mb-2">Items Purchased</h3>
+            <table class="w-full text-sm text-left text-gray-500">
+              <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                <tr>
+                  <th class="px-2 py-2">Item</th>
+                  <th class="px-2 py-2">Qty</th>
+                  <th class="px-2 py-2">Price</th>
+                  <th class="px-2 py-2">Total</th>
+                  <th class="px-2 py-2">Rak</th>
+                  <th class="px-2 py-2">Discount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in selectedReceipt.items" :key="item.id" class="bg-white border-b">
+                  <td class="px-2 py-2">{{ item.name }} (ID: {{ item.id }})</td>
+                  <td class="px-2 py-2">{{ item.quantity }}</td>
+                  <td class="px-2 py-2">Rp{{ item.price }}</td>
+                  <td class="px-2 py-2">Rp{{ item.totalPrice }}</td>
+                  <td class="px-2 py-2">{{ item.rak }}</td>
+                  <td class="px-2 py-2">{{ item.discount }}%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div v-else class="text-center text-gray-500">No receipt selected.</div>
+      </div>
+    </Dialog>
+
     <!-- Payment Success Modal -->
     <Dialog v-model:visible="showPaymentSuccessModal" header="Payment Successfully" modal :closable="true" :style="{ width: '300px', height: '300px' }">
       <div class="p-4 text-center">
@@ -382,10 +445,13 @@ import { useToast } from "primevue/usetoast";
 import { useConfirm } from "primevue/useconfirm";
 import jsPDF from "jspdf";
 import { useRouter } from "vue-router";
+import QRCode from "qrcode"; 
 
 export default {
   setup() {
     const router = useRouter();
+    
+    
     const toast = useToast();
     const confirm = useConfirm();
     const promos = ref([]);
@@ -401,7 +467,6 @@ export default {
     const showPaymentSuccessModal = ref(false);
     const isLoadingPayment = ref(false);
     const showQRCode = ref(false);
-    const qrCode = qrcodeImage;
     const isEditDialogVisible = ref(false);
     const files = ref([]);
     const imageUrl = ref(null);
@@ -421,6 +486,43 @@ export default {
     const isReceiptsDialogVisible = ref(false);
     const receipts = ref([]);
     const sortOrder = ref("desc");
+
+    const isQRCodeDetailDialogVisible = ref(false);
+    const qrCode = qrcodeImage; // Pastikan qrcodeImage sudah diimpor
+    const selectedReceipt = ref(null);
+    const qrCodeDataUrl = ref(null); 
+
+    const generateQRCode = async (receipt) => {
+      try {
+        const receiptData = JSON.stringify({
+          receiptNumber: receipt.receiptNumber,
+          timestamp: receipt.timestamp,
+          grandTotal: receipt.grandTotal,
+          items: receipt.items,
+          voucher: receipt.usedVoucher ? receipt.voucherDiscount : null,
+          userId: loggedInUser.value,
+        });
+        qrCodeDataUrl.value = await QRCode.toDataURL(receiptData, {
+          width: 200, // Ukuran QR code
+          margin: 1,  // Margin QR code
+        });
+      } catch (error) {
+        console.error("Error generating QR code:", error);
+        toast.add({
+          severity: "error",
+          summary: "QR Code Error",
+          detail: "Failed to generate QR code.",
+          life: 3000,
+        });
+      }
+    };
+
+    const showReceiptQRCode = async (receipt) => {
+      selectedReceipt.value = receipt;
+      qrCodeDataUrl.value = null; // Reset QR code sebelum generate baru
+      await generateQRCode(receipt); // Generate QR code
+      isQRCodeDetailDialogVisible.value = true;
+    };
 
     const truncateDescription = (desc, maxLength = 50) => {
       if (desc.length <= maxLength) return desc;
@@ -526,39 +628,41 @@ export default {
 
         doc.setFontSize(12);
         doc.text("Location: Universitas Brawijaya", 10, 50);
-        doc.text(`Receipt# : ${receipt.id}`, 120, 50);
+        doc.text(`Receipt# : ${receipt.receiptNumber}`, 120, 50);
         doc.text(`R. Date  : ${new Date(receipt.timestamp).toLocaleDateString()}`, 120, 60);
         doc.text(`R. Time  : ${new Date(receipt.timestamp).toLocaleTimeString()}`, 120, 70);
         doc.text(`IDVM     : ${loggedInUser.value}`, 120, 80);
 
         doc.text("----------------------------------------------------------------------------------------------------------------------------------------", 10, 96);
-        doc.text("QTY", 10, 100); // Kolom QTY
-        doc.text("Description", 25, 100); // Kolom Description
-        doc.text("Unit Price", 120, 100); // Kolom Unit Price
-        doc.text("Amount", 170, 100); // Kolom Amount
+        doc.text("QTY", 10, 100);
+        doc.text("Description", 25, 100);
+        doc.text("Unit Price", 120, 100);
+        doc.text("Amount", 170, 100);
         doc.text("----------------------------------------------------------------------------------------------------------------------------------------", 10, 104);
 
         let yPosition = 114;
         receipt.items.forEach((item) => {
           const qty = `${item.quantity}`;
-          const description = `[${item.rak}]${item.name}`;
-          const unitPrice = `Rp${item.price}`;
-          const amount = `Rp${item.totalPrice}`;
+          const rak = item.rak !== undefined ? item.rak : "N/A"; // Fallback ke "N/A" jika rak undefined
+          const description = `[${rak}] ${item.name}`;
+          const unitPrice = `Rp${item.price || 0}`;
+          const totalPrice = item.totalPrice !== undefined ? item.totalPrice : (item.price || 0) * item.quantity;
+          const amount = `Rp${totalPrice}`;
 
-          // Gunakan koordinat X tetap untuk setiap kolom
-          doc.text(qty, 10, yPosition); // Kolom QTY pada X=10
-          doc.text(description, 25, yPosition, { maxWidth: 90 }); // Kolom Description pada X=25, batasi lebar 90
-          doc.text(unitPrice, 120, yPosition); // Kolom Unit Price pada X=120
-          doc.text(amount, 170, yPosition); // Kolom Amount pada X=170
+          doc.text(qty, 10, yPosition);
+          doc.text(description, 25, yPosition, { maxWidth: 90 });
+          doc.text(unitPrice, 120, yPosition);
+          doc.text(amount, 170, yPosition);
 
           yPosition += 10;
         });
 
         doc.text("----------------------------------------------------------------------------------------------------------------------------------------", 10, yPosition);
         yPosition += 10;
-        doc.text(`subtotal:                Rp${receipt.grandTotal + (receipt.voucherDiscount || 0)}`, 135, yPosition);
+        const subtotal = receipt.grandTotal + (receipt.voucherDiscount || 0);
+        doc.text(`Subtotal:                Rp${subtotal}`, 135, yPosition);
         yPosition += 10;
-        doc.text(`diskon:                  Rp${receipt.voucherDiscount || 0}`, 135, yPosition);
+        doc.text(`Diskon:                  Rp${receipt.voucherDiscount || 0}`, 135, yPosition);
         yPosition += 10;
         doc.text("----------------------------------------------", 135, yPosition);
         yPosition += 10;
@@ -567,25 +671,23 @@ export default {
         doc.text("----------------------------------------------------------------------------------------------------------------------------------------", 10, yPosition);
         yPosition += 10;
 
-        // const machineStatus = receipt.items.some(item => item.stock === 0) ? "NOT OK" : "OK";
         const machineStatus = products.value.some(p => p.stock === 0) ? "NOT OK" : "OK";
         doc.text(`Status Machine = ${machineStatus}`, 10, yPosition);
 
-        // Slide 2: Bukti Pembayaran
+        // Slide 2: Bukti Pembayaran (opsional)
         doc.addPage();
         doc.setFontSize(16);
         doc.text("Bukti Pembayaran", 10, 10);
-        // doc.addImage(receipt.paymentProof, 'PNG', 10, 20, 180, 180); // Uncomment jika ada data gambar
+        // doc.addImage(receipt.paymentProof, 'PNG', 10, 20, 180, 180); // Uncomment jika ada bukti pembayaran
 
-        // Simpan PDF
-        const fileName = `receipt_${receipt.id}_${new Date(receipt.timestamp).toISOString().split("T")[0]}.pdf`;
+        const fileName = `receipt_${receipt.receiptNumber}_${new Date(receipt.timestamp).toISOString().split("T")[0]}.pdf`;
         doc.save(fileName);
         console.log("PDF saved with filename:", fileName);
 
         toast.add({
           severity: "success",
           summary: "PDF Downloaded",
-          detail: `Receipt ${receipt.id} has been downloaded successfully.`,
+          detail: `Receipt ${receipt.receiptNumber} has been downloaded successfully.`,
           life: 3000
         });
       } catch (error) {
@@ -647,40 +749,41 @@ export default {
     };
 
     const saveProduct = async () => {
-      loading.value = true;
-      if (!selectedProduct.value || !selectedProduct.value.id) {
-        toast.add({  life: 3000, severity: "error", summary: "Error", detail: "No product selected.", group: "tr" });
-        loading.value = false;
-        return;
-      }
-
+    loading.value = true;
+    if (selectedProduct.value && selectedProduct.value.id) {
       const productId = selectedProduct.value.id;
-      const productRef = dbRef(db, `products/${productId}`);
-      let imageToUpdate = selectedProduct.value.image; // Default ke gambar lama
+      const productRef = dbRef(db, `users/${loggedInUser.value}/products/${productId}`);
 
-      // Proses upload gambar baru jika ada
       if (files.value.length > 0) {
         const file = files.value[0];
         const storage = getStorage();
-        const storageRef = storRef(storage, `products/${file.name}`);
+        const storageRef = storRef(storage, `users/${loggedInUser.value}/products/${file.name}`);
         try {
-          const snapshot = await uploadBytes(storageRef, file);
-          imageUrl.value = await getDownloadURL(snapshot.ref);
-          imageToUpdate = imageUrl.value; // Gunakan URL gambar baru
-          console.log("File uploaded, URL:", imageToUpdate);
+          await uploadBytes(storageRef, file);            
+          imageUrl.value = await getDownloadURL(storageRef);
+          console.log("File uploaded, URL:", imageUrl.value);
         } catch (error) {
           console.error("Error uploading file:", error);
-          toast.add({  life: 3000, severity: "error", summary: "Upload Error", detail: "Failed to upload image.", group: "tr" });
+          toast.add({ 
+            severity: "error", 
+            summary: "Upload Error", 
+            detail: "Failed to upload image.", 
+            group: "tr" 
+          });
           loading.value = false;
-          return; // Hentikan eksekusi jika upload gagal
+          return;
         }
       }
 
-      // Tentukan status inventaris berdasarkan stok
+      const imageToUpdate = imageUrl.value || selectedProduct.value.image;
       const updatedStock = selectedProduct.value.stock;
       const updatedInventoryStatus = determineInventoryStatus(updatedStock);
 
-      // Log perubahan untuk aktivitas
+      // Tentukan kode aktivitas berdasarkan nomor rak
+      const rakNumber = String(selectedProduct.value.rak).padStart(3, "0");
+      const activityCode = `I${rakNumber}`;
+
+      // Tentukan perubahan apa yang terjadi untuk log
       const originalProduct = products.value.find(p => p.id === productId);
       let changes = [];
       if (originalProduct.name !== selectedProduct.value.name) changes.push("Name");
@@ -689,10 +792,9 @@ export default {
       if (originalProduct.discount !== selectedProduct.value.discount) changes.push("Discount");
       if (originalProduct.rak !== selectedProduct.value.rak) changes.push("Rak");
       if (originalProduct.stock !== selectedProduct.value.stock) changes.push("Stock");
-      if (imageToUpdate !== selectedProduct.value.image) changes.push("Image");
+      if (imageUrl.value) changes.push("Image");
 
       try {
-        // Update data produk di Firebase
         await update(productRef, {
           name: selectedProduct.value.name,
           desc: selectedProduct.value.desc,
@@ -705,8 +807,6 @@ export default {
         });
 
         // Log aktivitas
-        const rakNumber = String(selectedProduct.value.rak).padStart(3, "0");
-        const activityCode = `I${rakNumber}`;
         const description = `IN:Updated Item - ${selectedProduct.value.name} (${changes.join(", ")})`;
         await logActivity(activityCode, description);
 
@@ -715,16 +815,21 @@ export default {
           summary: "Product updated",
           detail: `${selectedProduct.value.name} has been updated. Stock status: ${updatedInventoryStatus}`,
           group: "tr",
-          life: 3000, 
         });
         isEditDialogVisible.value = false;
       } catch (error) {
         console.error("Error updating product:", error);
-        toast.add({ severity: "error", summary: "Error", detail: `Failed to update ${selectedProduct.value.name}. ${error.message}`, group: "tr", life: 3000 });
-      } finally {
-        loading.value = false;
+        toast.add({ 
+          severity: "error", 
+          summary: "Error", 
+          detail: `Failed to update ${selectedProduct.value.name}. ${error.message}`, 
+          group: "tr", 
+          life: 3000 
+        });
       }
-    };
+    }
+    loading.value = false;
+  };
 
     const cancelEdit = () => {
       isEditDialogVisible.value = false;
@@ -755,7 +860,7 @@ export default {
       if (files.value.length > 0) {
         const file = files.value[0];
         const storage = getStorage();
-        const storageRef = storRef(storage, `products/${file.name}`);
+        const storageRef = storRef(storage, `users/${loggedInUser.value}/products/${file.name}`);
         try {
           const snapshot = await uploadBytes(storageRef, file);
           imageUrl = await getDownloadURL(snapshot.ref);
@@ -767,8 +872,8 @@ export default {
         }
       }
 
-      const productsRef = dbRef(db, "products");
       try {
+        const productsRef = dbRef(db, `users/${loggedInUser.value}/products`);
         const snapshot = await get(productsRef);
         let lastId = 0;
         if (snapshot.exists()) {
@@ -794,31 +899,21 @@ export default {
           inventoryStatus: newInventoryStatus,
         };
 
-        const newProductRef = dbRef(db, `products/${newProductId}`);
+        const newProductRef = dbRef(db, `users/${loggedInUser.value}/products/${newProductId}`);
         await set(newProductRef, newProductData);
 
-        // Log aktivitas IXXX untuk barang baru berdasarkan nomor rak
-        const rakNumber = String(rak).padStart(3, "0");
-        const activityCode = `I${rakNumber}`; // Misal rak 15 jadi "I015"
-        const description = `IN:New Item - ${name}`;
-        await logActivity(activityCode, description);
-
-        toast.add({
-          severity: "success",
-          summary: "Product Added",
-          detail: `The new product ${name} has been added with status: ${newInventoryStatus}`,
-          group: "tr",
-        });
+        toast.add({ severity: "success", summary: "Product Added", detail: `${name} added successfully.`, life: 3000 });
         closeAddNewProductDialog();
       } catch (error) {
-        toast.add({ severity: "error", summary: "Error", detail: "Failed to add new product.", group: "tr", life: 3000 });
-        console.log("Error saving product:", error);
+        console.error("Error saving product:", error);
+        toast.add({ severity: "error", summary: "Error", detail: "Failed to add product: " + error.message, life: 3000 });
+      } finally {
+        loading.value = false;
       }
-      loading.value = false;
     };
 
     const deleteProduct = (product) => {
-      const productRef = dbRef(db, `products/${product.id}`);
+      const productRef = dbRef(db, `users/${loggedInUser.value}/products/${product.id}`);
       confirm.require({
         message: `Do you want to delete ${product.name}?`,
         header: "Danger Zone",
@@ -968,7 +1063,7 @@ export default {
         rejectProps: { label: "Cancel", severity: "secondary", outlined: true },
         acceptProps: { label: "Delete", severity: "danger" },
         accept: async () => {
-          const receiptRef = dbRef(db, `receipts/${receipt.id}`);
+          const receiptRef = dbRef(db, `users/${loggedInUser.value}/receipts/${receipt.id}`);
           try {
             await remove(receiptRef);
             toast.add({ severity: "success", summary: "Receipt Deleted", detail: "Receipt has been successfully deleted.", life: 3000 });
@@ -992,7 +1087,7 @@ export default {
         rejectProps: { label: "Cancel", severity: "secondary", outlined: true },
         acceptProps: { label: "Delete All", severity: "danger" },
         accept: async () => {
-          const receiptsRef = dbRef(db, "receipts");
+          const receiptsRef = dbRef(db, `users/${loggedInUser.value}/receipts`);
           try {
             await remove(receiptsRef);
             toast.add({ severity: "success", summary: "All Receipts Deleted", detail: "All receipts have been successfully deleted.", life: 3000 });
@@ -1008,29 +1103,57 @@ export default {
     };
 
     onMounted(() => {
+      console.log("Admin.vue: loggedInUser =", loggedInUser.value);
+      if (!loggedInUser.value) {
+        console.error("No logged-in user found!");
+        router.push('/login');
+        return;
+      }
       updateStatusToAdmin();
-      const promosRef = dbRef(db, "promos");
+      
+      const promosRef = dbRef(db, `users/${loggedInUser.value}/promos`);
       onValue(promosRef, (snapshot) => {
         const fetchedPromos = snapshot.val();
         promos.value = fetchedPromos ? Object.values(fetchedPromos).filter((item) => item && item.image && item.name) : [];
       });
 
-      const productsRef = dbRef(db, "products");
+      const productsRef = dbRef(db, `users/${loggedInUser.value}/products`);
       onValue(productsRef, (snapshot) => {
         const fetchedProducts = snapshot.val();
-        products.value = fetchedProducts ? Object.values(fetchedProducts).filter((item) => item && item.image && item.name) : [];
-        window.scrollTo(0,0); 
-        console.log("Products updated, scrolled to top");
+        products.value = fetchedProducts 
+          ? Object.values(fetchedProducts).filter((item) => item && item.image && item.name) 
+          : [];
+        console.log(`Admin.vue: Products loaded for ${loggedInUser.value}:`, products.value);
+        window.scrollTo(0, 0); // Kembali ke atas saat data diperbarui
+      }, (error) => {
+        console.error("Error fetching products in Admin.vue:", error);
       });
 
-      const receiptsRef = dbRef(db, "receipts");
+      const receiptsRef = dbRef(db, `users/${loggedInUser.value}/receipts`);
       onValue(receiptsRef, (snapshot) => {
         const fetchedReceipts = snapshot.val();
-        receipts.value = fetchedReceipts ? Object.entries(fetchedReceipts).map(([id, data]) => ({ id, ...data })) : [];
+        receipts.value = fetchedReceipts 
+          ? Object.entries(fetchedReceipts).map(([id, data]) => ({ id, ...data }))
+          : [];
+        console.log(`Receipts loaded for ${loggedInUser.value}:`, receipts.value);
       });
+
+      if (localStorage.getItem('isFullyAuthenticated') !== 'true') {
+        router.push('/login');
+        toast.add({ severity: 'warn', summary: 'Access Denied', detail: 'Please login to access Admin', life: 3000 });
+      } else {
+        updateStatusToAdmin();
+      }
+
+
+
     });
 
     return {
+      showReceiptQRCode,
+      qrCodeDataUrl,
+      isQRCodeDetailDialogVisible, 
+      selectedReceipt, 
       truncateDescription, 
       loggedInUser,
       goToLogin,

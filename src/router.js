@@ -4,11 +4,10 @@ import Home from "./components/Home.vue";
 import Admin from "./components/Admin.vue";
 import Login from "./components/Login.vue";
 import StatusMonitor from "./components/StatusMonitor.vue";
-import ThankYou from "./components/ThankYou.vue";
 
 const routes = [
   {
-    path: "/",
+    path: "/:userId",
     name: "Home",
     component: Home,
   },
@@ -16,6 +15,7 @@ const routes = [
     path: "/admin",
     name: "Admin",
     component: Admin,
+    meta: {requiresAuth: true}, 
   }, 
   {
     path: "/login",
@@ -26,18 +26,23 @@ const routes = [
     path: "/status", 
     name: "Status",
     component: StatusMonitor, 
-  },
-  {
-    path: "/thank-you", 
-    name: "ThankYou", 
-    component: ThankYou 
   }
-
 ];
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
+});
+
+// Navigation Guard untuk memeriksa autentikasi
+router.beforeEach((to, from, next) => {
+  const loggedInUser = localStorage.getItem('loggedInUser');
+  
+  if (to.matched.some(record => record.meta.requiresAuth) && !loggedInUser) {
+    next('/login'); // Redirect ke login jika akses admin tanpa login
+  } else {
+    next();
+  }
 });
 
 export default router;

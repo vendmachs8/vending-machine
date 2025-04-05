@@ -2,8 +2,9 @@
   <div class="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
     <div class="flex items-center justify-between px-4 py-4">
       <h2 class="subpixel-antialiased font-semibold text-4xl px-2" id="featured-products">
-        Home
+        Home {{ currentUserId }}
       </h2>
+      <h3>{{ userId }}</h3>
       <button @click="toggleMenuDrawer">
         <i class="pi pi-list text-xl"></i>
       </button>
@@ -180,7 +181,8 @@
           />
           <div class="flex flex-row">
             <h3 class="text-lg mt-2">{{ product.name }}</h3>
-            <h3>{{ product.stock }}</h3>
+            <span>{{ product.stock }}.</span>
+            <h3>{{ product.reservedStock }}</h3>
           </div>
           
           <div class="flex justify-between items-center mt-2 text-xl">
@@ -478,21 +480,36 @@
 
 <script>
 import { ref, onMounted, computed, watch, onUnmounted } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { db } from "../firebase";
 import { onValue, ref as dbRef, update, push, set, get } from "firebase/database";
 import { useToast } from "primevue/usetoast";
-import QRCode from 'qrcode'; 
+import QRCode from 'qrcode';
+
+// import banner1 from "../assets/product/banner1.png";
+// import banner2 from "../assets/product/banner2.jpeg";
+
+// import drink1 from "../assets/product/drink1.jpeg";
+// import drink2 from "../assets/product/drink2.jpeg";
+// import drink3 from "../assets/product/drink3.jpeg";
+// import food1 from "../assets/product/food1.jpeg";
+// import food2 from "../assets/product/food2.jpeg";
+// import food3 from "../assets/product/food3.jpeg";
+// import food4 from "../assets/product/food4.jpeg";
+// import food5 from "../assets/product/food5.jpeg";
+// import food6 from "../assets/product/food6.jpeg";
+// import food7 from "../assets/product/food7.jpeg";
 
 export default {
   setup() {
+    const route = useRoute(); 
     const router = useRouter();
     const toast = useToast();
     let wiggleInterval = null;
     let inactivityTimeout = null;
     let pollingInterval = null;
     const inactivityDuration = 3000;
-
+    const currentUserId = ref('');
     const promos = ref([]);
     const products = ref([]);
     const sortedProducts = ref([]);
@@ -520,13 +537,15 @@ export default {
     const paymentUrl = ref("");
     const paymentNo = ref("");
     const paymentExpired = ref(null);
-    const paymentResult = ref(null);
+    const paymentResult = ref({ qrCode: null });
     const isCheckingPayment = ref(false);
+    const userId = ref(null); 
 
     const randomReceiptNumber = ref(''); 
 
     const generateRandomNumber = () => {
-      return Math.floor(100000 + Math.random() * 900000).toString();
+      const randomNum = Math.floor(100000 + Math.random() * 900000).toString();
+      return `${userId.value}-${randomNum}`; // Format: userId-randomNumber
     };
 
     const generateQRCode = async (text) => {
@@ -541,7 +560,7 @@ export default {
     const API_BASE_URL = ref(
       window.location.hostname === 'development' 
         ? 'http://localhost:3000' 
-        : 'https://d750-114-10-46-80.ngrok-free.app'
+        : 'https://9f89-114-10-46-80.ngrok-free.app'
     );
 
     // const API_BASE_URL = ref(
@@ -582,12 +601,11 @@ export default {
     
     const countdownTime = ref(15 * 60); // 15 menit dalam detik
     const countdownInterval = ref(null);
-    
     const isTransactionCancelled = ref(false); 
 
     const startCountdown = () => {
         stopCountdown(); // Pastikan tidak ada interval yang berjalan
-        countdownTime.value = 15 * 60; // Reset ke 15 menit
+        countdownTime.value = 2 * 60; // Reset ke 15 menit
         countdownInterval.value = setInterval(() => {
             if (countdownTime.value > 0) {
                 countdownTime.value -= 1;
@@ -764,15 +782,28 @@ export default {
     };
 
     const fetchData = async () => {
-      onValue(dbRef(db, "promos"), (snapshot) => {
+      userId.value = route.params.userId; 
+
+      if (!loggedInUser.value) {
+        console.error("No logged-in user found!");
+        return;
+      }
+      
+      onValue(dbRef(db, `users/${loggedInUser.value}/promos`), (snapshot) => {
         const fetchedPromos = snapshot.val();
         promos.value = fetchedPromos ? Object.values(fetchedPromos).filter((item) => item?.image && item?.name) : [];
       });
 
-      onValue(dbRef(db, "products"), (snapshot) => {
+      onValue(dbRef(db, `users/${loggedInUser.value}/products`), (snapshot) => {
         const fetchedProducts = snapshot.val();
-        products.value = fetchedProducts ? Object.values(fetchedProducts).filter((item) => item?.image && item?.name) : [];
+        products.value = fetchedProducts 
+          ? Object.values(fetchedProducts).filter((item) => item && item.image && item.name) 
+          : [];
+        console.log(`Home.vue: Products loaded for ${loggedInUser.value}:`, products.value);
         updateSortedProducts();
+        window.scrollTo(0, 0); // Kembali ke atas saat data diperbarui
+      }, (error) => {
+        console.error("Error fetching products in Home.vue:", error);
       });
 
       if (loggedInUser.value) {
@@ -782,12 +813,9 @@ export default {
         try {
           const userSnapshot = await get(userRef);
           if (userSnapshot.exists()) {
-            const userData = userSnapshot.val();
-            await set(userRef, {
+            await update(userRef, {
               username: loggedInUser.value,
-              password: userData.password,
               status: "S001",
-              statusChanges: userData.statusChanges || {},
             });
             await push(statusChangeRef, { status: "S001", timestamp: new Date().toISOString() });
           }
@@ -849,6 +877,16 @@ export default {
       if (newCount > 0) startWiggleAnimation();
       else if (wiggleInterval) clearInterval(wiggleInterval);
     });
+
+    watch(
+      () => route.params.userId,
+      (newUserId) => {
+        if (newUserId !== userId.value) {
+          console.log(`Route changed to ${newUserId}, updating data...`);
+          fetchData();
+        }
+      }
+    );
 
     const isInCart = (product) => cartItems.value.some((item) => item.product.id === product.id);
 
@@ -963,9 +1001,14 @@ export default {
       }
     };
 
+    // Hanya bagian `proceedToPayment` yang diperbaiki, sisanya tetap sama
     const proceedToPayment = async () => {
       isLoadingPayment.value = true;
       try {
+        if (!cartItems.value.length) {
+          throw new Error('Cart is empty');
+        }
+
         const paymentData = {
           total: totalPaymentWithPromo.value,
           buyerName: "Customer Name",
@@ -976,8 +1019,9 @@ export default {
           products: cartItems.value.map(item => item.product.name),
           quantities: cartItems.value.map(item => item.quantity.toString()),
           prices: cartItems.value.map(item => getDiscountedPrice(item.product).toString()),
+          userId: userId.value,
         };
-        console.log('Sending payment data:', paymentData);
+        console.log('Sending payment data:', JSON.stringify(paymentData, null, 2)); // Log lengkap
 
         const response = await fetch(`${API_BASE_URL.value}/api/ipaymu-payment`, {
           method: 'POST',
@@ -987,10 +1031,10 @@ export default {
 
         const result = await response.json();
         console.log('Payment Result:', result);
-        paymentResult.value = result;
 
         if (String(result.Status) === "200") {
           referenceId.value = result.clientReferenceId;
+          localStorage.setItem('lastReferenceId', referenceId.value);
           if (!referenceId.value) {
             throw new Error("Missing reference ID from server");
           }
@@ -1006,39 +1050,83 @@ export default {
           }
 
           console.log('Using referenceId for polling:', referenceId.value);
-          localStorage.setItem('lastReferenceId', referenceId.value);
-          startPollingTransactionStatus();
           showQRCode.value = true;
           startCountdown();
+          startPollingTransactionStatus();
         } else {
-          toast.add({
-            severity: "error",
-            summary: "Payment Failed",
-            detail: result.Message || "Failed to process payment",
-            life: 3000,
-          });
+          throw new Error(result.Message || 'Failed to process payment');
         }
       } catch (error) {
         console.error("Payment error:", error);
         toast.add({
           severity: "error",
           summary: "Error",
-          detail: "An error occurred during payment processing",
+          detail: error.message || "An error occurred during payment processing",
           life: 3000,
         });
       } finally {
         isLoadingPayment.value = false;
       }
     };
+    
+    const checkTransactionStatus = async (refId) => {
+      try {
+        const response = await fetch(`${API_BASE_URL.value}/api/check-transaction`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ referenceId: refId })
+        });
+
+        if (!response.ok) {
+          if (response.status === 404) {
+            console.log(`Transaction ${refId} not found, assuming completed...`);
+            // Jika 404, anggap transaksi sudah selesai di /api/notify
+            stopPollingTransactionStatus();
+            stopCountdown();
+            showQRCode.value = false;
+            await completePayment(refId); // Panggil completePayment untuk QR code receipt
+            return;
+          }
+          throw new Error(`Network response was not ok: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('Transaction Status Check:', result);
+        
+        if (result.status === 'berhasil') {
+          stopPollingTransactionStatus();
+          stopCountdown();
+          showQRCode.value = false;
+          await completePayment(result.transactionId);
+        } else if (result.status === 'cancelled' || result.status === 'not_found') {
+          stopPollingTransactionStatus();
+          stopCountdown();
+          showQRCode.value = false;
+          localStorage.removeItem('lastReferenceId');
+          referenceId.value = '';
+          toast.add({
+            severity: 'info',
+            summary: 'Transaction Cancelled',
+            detail: 'Transaksi telah dibatalkan atau tidak ditemukan',
+            life: 3000,
+          });
+        }
+
+        // Status pending akan terus dipolling
+      } catch (error) {
+        console.error('Error checking transaction:', error);
+        throw error;
+      }
+    };
 
     const completePayment = async (transactionId) => {
       try {
-        randomReceiptNumber.value = generateRandomNumber(); // Buat nomor acak
-        const qrCodeDataUrl = await generateQRCode(randomReceiptNumber.value); // Buat QR code
+        randomReceiptNumber.value = generateRandomNumber();
+        const qrCodeDataUrl = await generateQRCode(randomReceiptNumber.value);
 
-        // Simpan detail transaksi ke server
         const receiptData = {
           receiptNumber: randomReceiptNumber.value,
+          userId: userId.value,
           timestamp: new Date().toISOString(),
           items: cartItems.value.map(item => ({
             id: item.product.id,
@@ -1057,7 +1145,6 @@ export default {
           transactionId: transactionId || paymentResult.value?.Data?.TransactionId || "PENDING"
         };
 
-        // Kirim ke server untuk disimpan di Firebase
         const response = await fetch(`${API_BASE_URL.value}/api/save-receipt`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1076,6 +1163,7 @@ export default {
           for (let i = 0; i < item.quantity; i++) {
             await logActivity(activityCode, description);
           }
+          // Hapus pengurangan stok dari sini
         }
 
         cartItems.value = [];
@@ -1087,8 +1175,11 @@ export default {
         toggleCartDrawer();
         updateSortedProducts();
 
-        // Tampilkan dialog sukses dengan QR code
-        paymentResult.value.qrCode = qrCodeDataUrl; // Simpan QR code untuk ditampilkan
+        if (!paymentResult.value) {
+          paymentResult.value = {};
+        }
+
+        paymentResult.value.qrCode = qrCodeDataUrl;
         showPaymentSuccessModal.value = true;
         localStorage.removeItem('lastReferenceId');
       } catch (error) {
@@ -1097,38 +1188,16 @@ export default {
       }
     };
 
-    const checkTransactionStatus = async (refId) => {
-      try {
-        const response = await fetch(`${API_BASE_URL.value}/api/check-transaction`, {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ referenceId: refId })
-        });
-
-        if (!response.ok) throw new Error('Network response was not ok');
-        
-        const result = await response.json();
-        console.log('Transaction Status Check:', result);
-        
-        if (result.status === 'berhasil') {
-          stopPollingTransactionStatus();
-          stopCountdown();
-          await completePayment(result.transactionId);
-          showQRCode.value = false;
-          showPaymentSuccessModal.value = true;
-          // Bersihkan reference ID setelah selesai
-          localStorage.removeItem('lastReferenceId');
-        } else if (result.status === 'cancelled') {
-          stopPollingTransactionStatus();
-          stopCountdown();
-          showQRCode.value = false;
-        }
-        // Status pending akan terus dipolling
-      } catch (error) {
-        console.error('Error checking transaction:', error);
-        throw error;
+    const checkPendingTransaction = async () => {
+      const lastReferenceId = localStorage.getItem('lastReferenceId');
+      if (lastReferenceId && !referenceId.value) {
+        referenceId.value = lastReferenceId;
+        console.log('Restoring pending transaction with referenceId:', referenceId.value);
+        await checkTransactionStatus(referenceId.value);
       }
     };
+
+
 
     const startPollingTransactionStatus = () => {
       if (pollingInterval) clearInterval(pollingInterval);
@@ -1203,7 +1272,11 @@ export default {
     };
 
     const navigateTo = (path) => {
-      router.push(path);
+      if (path === '/admin' && localStorage.getItem('isFullyAuthenticated') !== 'true') {
+        router.push('/login');
+      } else {
+        router.push(path);
+      }
       isMenuDrawerVisible.value = false;
       resetInactivityTimer();
     };
@@ -1249,10 +1322,19 @@ export default {
       }
     });
 
+    window.addEventListener('beforeunload', async () => {
+      if (isFullyAuthenticated.value && loggedInUser.value) {
+        const userRef = dbRef(db, `users/${loggedInUser.value}`);
+        await update(userRef, { status: 'S002' });
+      }
+    });
+
     onMounted(() => {
+      console.log("Home.vue: loggedInUser =", loggedInUser.value);
       fetchData();
       resetInactivityTimer();
       testConnection();
+      checkPendingTransaction(); 
       window.addEventListener("click", handleUserActivity);
       window.addEventListener("keydown", handleUserActivity);
       window.addEventListener("scroll", handleUserActivity);
@@ -1260,6 +1342,15 @@ export default {
       if (window.location.pathname === '/thank-you' && referenceId.value) {
         checkTransactionStatus(referenceId.value);
         console.log("thankyou");
+      }
+      const userIdFromRoute = route.params.userId;
+      if (userIdFromRoute) {
+        currentUserId.value = userIdFromRoute;
+        localStorage.setItem('loggedInUser', userIdFromRoute);
+        localStorage.setItem('isFullyAuthenticated', 'false'); // Tidak sepenuhnya terautentikasi
+        logActivity('A001', `User accessed with ID: ${userIdFromRoute}`);
+      } else {
+        currentUserId.value = localStorage.getItem('loggedInUser') || '';
       }
     });
 
@@ -1276,6 +1367,8 @@ export default {
     });
 
     return {
+      userId, 
+      currentUserId, 
       randomReceiptNumber,
       generateQRCode, 
       selectedPaymentMethod, 
