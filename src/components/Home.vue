@@ -1020,6 +1020,7 @@ export default {
           quantities: cartItems.value.map(item => item.quantity.toString()),
           prices: cartItems.value.map(item => getDiscountedPrice(item.product).toString()),
           userId: userId.value,
+          clientReferenceId: randomReceiptNumber.value 
         };
         console.log('Sending payment data:', JSON.stringify(paymentData, null, 2)); // Log lengkap
 
@@ -1156,16 +1157,9 @@ export default {
         }
 
         await logActivity("A005");
-        for (const item of cartItems.value) {
-          const rakNumber = String(item.product.rak).padStart(3, "0");
-          const activityCode = `Q${rakNumber}`;
-          const description = `OUT:${item.product.name}`;
-          for (let i = 0; i < item.quantity; i++) {
-            await logActivity(activityCode, description);
-          }
-          // Hapus pengurangan stok dari sini
-        }
 
+        // Hapus pengurangan stok dari sini
+        // Biarkan backend (processSale) yang menangani pengurangan stok
         cartItems.value = [];
         cartCount.value = 0;
         totalPayment.value = 0;
