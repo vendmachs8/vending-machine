@@ -2,12 +2,11 @@
   <div class="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
     <div class="flex items-center justify-between px-4 py-4">
       <h2 class="subpixel-antialiased font-semibold text-4xl px-2" id="featured-products">
-        Home {{ currentUserId }}
+        Home 
       </h2>
-      <h3>{{ userId }}</h3>
-      <button @click="toggleMenuDrawer">
+      <!-- <button @click="toggleMenuDrawer">
         <i class="pi pi-list text-xl"></i>
-      </button>
+      </button> -->
     </div>
 
     <!-- Promotion Card -->
@@ -132,7 +131,7 @@
                 <p class="text-lg">Makanan</p>
               </button>
               <!-- Dummy Buttons -->
-              <button
+              <!-- <button
                 class="flex items-center justify-center py-2 px-4 text-sm font-medium rounded-md transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200 min-w-[80px]"
               >
                 Tombol 1
@@ -146,7 +145,7 @@
                 class="flex items-center justify-center py-2 px-4 text-sm font-medium rounded-md transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200 min-w-[80px]"
               >
                 Tombol 3
-              </button>
+              </button> -->
             </div>
           </div>
         </div>
@@ -181,10 +180,11 @@
           />
           <div class="flex flex-row">
             <h3 class="text-lg mt-2">{{ product.name }}</h3>
-            <span>{{ product.stock }}.</span>
-            <h3>{{ product.reservedStock }}</h3>
           </div>
           
+          <!-- Sisa Stok -->
+          <p class="text-sm text-gray-500 mt-1">Sisa Stok: {{ getAvailableStock(product) }}</p>
+
           <div class="flex justify-between items-center mt-2 text-xl">
             <div class="price-container">
               <p v-if="product.discount > 0" class="text-red-600 font-bold">Rp{{ getDiscountedPrice(product) }}</p>
@@ -205,6 +205,14 @@
                 <i v-if="getAvailableStock(product) === 0" class="pi pi-times"></i>
               </button>
             </div>
+          </div>
+
+          <!-- Overlay RESERVED -->
+          <div
+            v-if="getAvailableStock(product) === 0 && product.reservedStock > 0"
+            class="absolute inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 rounded-2xl"
+          >
+            <span class="text-white text-xl font-bold">RESERVED</span>
           </div>
         </div>
       </div>
@@ -267,6 +275,7 @@
     </Drawer>
 
     <!-- Cart Drawer -->
+    <!-- Cart Drawer -->
     <Drawer
       v-model:visible="isCartDrawerVisible"
       position="bottom"
@@ -276,53 +285,53 @@
       @scroll.stop
     >
       <template #header>
-        <div class="text-2xl font-bold">Cart</div>
+        <div class="text-2xl font-bold">Cart ({{ cartItems.length }})</div>
       </template>
-      <div class="p-0">
-        <div v-if="cartItems.length > 0">
-          <div class="relative overflow-y-auto">
-            <!-- Item Cart (tidak diubah) -->
-            <div
-              v-for="(item, index) in cartItems"
-              :key="index"
-              class="flex items-center justify-between bg-white max-h-24 w-full rounded-r-2xl overflow-y-clip my-3"
-              style="border-top-left-radius: 40px; border-bottom-left-radius: 40px;"
-            >
-              <img :src="item.product.image" alt="product.name" class="w-28 h-28 object-cover rounded-md" />
-              <div class="grid grid-flow-row min-w-24 max-w-24 items-center -ml-4">
-                <span class="truncate text-left mx-2">{{ item.product.name }}</span>
-                <div class="grid grid-flow-col">
-                  <p class="text-left ml-2 text-gray-400">Rak :</p>
-                  <p class="text-left mr-8">{{ item.product.rak }}</p>
-                </div>
-              </div>
-              <div class="flex items-center gap-3 -ml-8 -mr-4">
-                <button
-                  class="px-1.5 py-0.5 border rounded-full"
-                  :class="{ 'bg-white border-gray-400': getAvailableStock(item.product) > 0, 'bg-red-200': getAvailableStock(item.product) <= 0 }"
-                  @click="decreaseQuantity(item)"
-                >
-                  <i class="pi pi-minus" />
-                </button>
-                <span v-if="item.quantity < 10">{{ `0${item.quantity}` }}</span>
-                <span v-else>{{ item.quantity }}</span>
-                <button
-                  class="px-1.5 py-0.5 rounded-full"
-                  :class="{ 'bg-primary-200': getAvailableStock(item.product) > 0, 'bg-gray-400': getAvailableStock(item.product) <= 0 }"
-                  :disabled="getAvailableStock(item.product) <= 0"
-                  @click="increaseQuantity(item)"
-                >
-                  <i class="pi pi-plus" />
-                </button>
-              </div>
-              <div class="mr-6 max-w-14">
-                <span v-if="item.product.discount > 0" class="font-bold text-red-600">Rp{{ getDiscountedPrice(item.product) * item.quantity }}</span>
-                <span v-if="item.product.discount > 0" class="block text-gray-500 line-through text-sm">Rp{{ item.product.price * item.quantity }}</span>
-                <span v-else class="font-bold">Rp{{ item.product.price * item.quantity }}</span>
+      <div class="p-0 flex flex-col h-full">
+        <div v-if="cartItems.length > 0" class="flex-1 overflow-y-auto">
+          <!-- Item Cart -->
+          <div
+            v-for="(item, index) in cartItems"
+            :key="index"
+            class="flex items-center justify-between bg-white max-h-24 w-full rounded-r-2xl overflow-y-clip my-3"
+            style="border-top-left-radius: 40px; border-bottom-left-radius: 40px;"
+          >
+            <img :src="item.product.image" alt="product.name" class="w-28 h-28 object-cover rounded-md" />
+            <div class="grid grid-flow-row min-w-24 max-w-24 items-center -ml-4">
+              <span class="truncate text-left mx-2">{{ item.product.name }}</span>
+              <div class="grid grid-flow-col">
+                <p class="text-left ml-2 text-gray-400">Rak :</p>
+                <p class="text-left mr-8">{{ item.product.rak }}</p>
               </div>
             </div>
+            <div class="flex items-center gap-3 -ml-8 -mr-4">
+              <button
+                class="px-1.5 py-0.5 border rounded-full"
+                :class="{ 'bg-white border-gray-400': getAvailableStock(item.product) > 0, 'bg-red-200': getAvailableStock(item.product) <= 0 }"
+                @click="decreaseQuantity(item)"
+              >
+                <i class="pi pi-minus" />
+              </button>
+              <span v-if="item.quantity < 10">{{ `0${item.quantity}` }}</span>
+              <span v-else>{{ item.quantity }}</span>
+              <button
+                class="px-1.5 py-0.5 rounded-full"
+                :class="{ 'bg-primary-200': getAvailableStock(item.product) > 0, 'bg-gray-400': getAvailableStock(item.product) <= 0 }"
+                :disabled="getAvailableStock(item.product) <= 0"
+                @click="increaseQuantity(item)"
+              >
+                <i class="pi pi-plus" />
+              </button>
+            </div>
+            <div class="mr-6 max-w-14">
+              <span v-if="item.product.discount > 0" class="font-bold text-red-600">Rp{{ getDiscountedPrice(item.product) * item.quantity }}</span>
+              <span v-if="item.product.discount > 0" class="block text-gray-500 line-through text-sm">Rp{{ item.product.price * item.quantity }}</span>
+              <span v-else class="font-bold">Rp{{ item.product.price * item.quantity }}</span>
+            </div>
           </div>
-          <div class="sticky bottom-0 z-50 bg-surface-100 py-4">
+
+          <!-- Bagian Total dan Metode Pembayaran (Tidak Sticky) -->
+          <div class="py-4">
             <div class="flex justify-between py-3">
               <p class="text-gray-400">Sub-total:</p>
               <p class="font-bold">Rp.{{ originalSubtotal }}</p>
@@ -336,8 +345,11 @@
               <p>Rp.{{ totalPaymentWithPromo }}</p>
             </div>
             <!-- Pilihan Metode Pembayaran -->
-            <div class="mt-4">
-              <label class="block text-gray-700 font-semibold mb-2">Metode Pembayaran:</label>
+            <div class="mt-4" ref="paymentMethodSection">
+              <label class="block text-gray-700 font-semibold mb-2">
+                Metode Pembayaran:
+                <span v-if="showPaymentWarning" class="text-red-500 ml-2">Pilih metode pembayaran terlebih dahulu!</span>
+              </label>
               <Select
                 v-model="selectedPaymentMethod"
                 :options="paymentMethods"
@@ -357,18 +369,19 @@
                 class="w-full mb-4 border-gray-300 rounded-md"
               />
             </div>
-            <div class="mt-4">
-              <Button
-                label="Checkout"
-                class="w-full p-button-primary h-16 rounded-full checkout-gradient"
-                :loading="isLoadingPayment"
-                :disabled="!selectedPaymentMethod || (selectedPaymentMethod === 'va' && !selectedPaymentChannel)"
-                @click="proceedToPayment"
-              />
-            </div>
           </div>
         </div>
-        <div v-else class="text-center text-gray-500 pb-10">Your cart is empty.</div>
+        <div v-else class="text-center text-gray-500 pb-10 flex-1">Your cart is empty.</div>
+
+        <!-- Tombol Checkout Sticky -->
+        <div class="sticky bottom-0 z-50 bg-surface-100 py-4">
+          <Button
+            label="Checkout"
+            class="w-full p-button-primary h-16 rounded-full checkout-gradient"
+            :loading="isLoadingPayment"
+            @click="handleCheckout"
+          />
+        </div>
       </div>
     </Drawer>
 
@@ -482,7 +495,7 @@
 import { ref, onMounted, computed, watch, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { db } from "../firebase";
-import { onValue, ref as dbRef, update, push, set, get } from "firebase/database";
+import { onValue, ref as dbRef, update, push, set, get, off } from "firebase/database";
 import { useToast } from "primevue/usetoast";
 import QRCode from 'qrcode';
 
@@ -505,10 +518,28 @@ export default {
     const route = useRoute(); 
     const router = useRouter();
     const toast = useToast();
+    const showPaymentWarning = ref(false); // State untuk menampilkan peringatan
+    const paymentMethodSection = ref(null); // Ref untuk bagian metode pembayaran
+
+    const handleCheckout = () => {
+      if (!selectedPaymentMethod.value || (selectedPaymentMethod.value === 'va' && !selectedPaymentChannel.value)) {
+        // Jika metode pembayaran belum dipilih, tampilkan peringatan dan scroll
+        showPaymentWarning.value = true;
+        paymentMethodSection.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setTimeout(() => {
+          showPaymentWarning.value = false; // Sembunyikan peringatan setelah 3 detik
+        }, 3000);
+      } else {
+        // Jika metode pembayaran sudah dipilih, lanjutkan ke pembayaran
+        proceedToPayment();
+      }
+      resetInactivityTimer();
+    };
+    
     let wiggleInterval = null;
     let inactivityTimeout = null;
     let pollingInterval = null;
-    const inactivityDuration = 3000;
+    const inactivityDuration = 30000;
     const currentUserId = ref('');
     const promos = ref([]);
     const products = ref([]);
@@ -788,20 +819,25 @@ export default {
         console.error("No logged-in user found!");
         return;
       }
+
+      const promosRef = dbRef(db, `users/${loggedInUser.value}/promos`);
+      const productsRef = dbRef(db, `users/${loggedInUser.value}/products`);
+      off(promosRef); // Hentikan listener promos sebelumnya
+      off(productsRef); // Hentikan listener products sebelumnya
       
-      onValue(dbRef(db, `users/${loggedInUser.value}/promos`), (snapshot) => {
+      onValue(promosRef, (snapshot) => {
         const fetchedPromos = snapshot.val();
         promos.value = fetchedPromos ? Object.values(fetchedPromos).filter((item) => item?.image && item?.name) : [];
       });
 
-      onValue(dbRef(db, `users/${loggedInUser.value}/products`), (snapshot) => {
+      onValue(productsRef, (snapshot) => {
         const fetchedProducts = snapshot.val();
-        products.value = fetchedProducts 
-          ? Object.values(fetchedProducts).filter((item) => item && item.image && item.name) 
+        products.value = fetchedProducts
+          ? Object.values(fetchedProducts).filter((item) => item && item.image && item.name)
           : [];
         console.log(`Home.vue: Products loaded for ${loggedInUser.value}:`, products.value);
         updateSortedProducts();
-        window.scrollTo(0, 0); // Kembali ke atas saat data diperbarui
+        window.scrollTo(0, 0);
       }, (error) => {
         console.error("Error fetching products in Home.vue:", error);
       });
@@ -824,7 +860,6 @@ export default {
         }
       }
     };
-
     const updateSortedProducts = () => {
       let results = [...products.value];
       if (filter.value !== "all") {
@@ -834,13 +869,13 @@ export default {
         results = results.filter((product) => product.name.toLowerCase().includes(searchQuery.value.toLowerCase()));
       }
       if (sortBy.value === 'priceLowToHigh') {
-        results.sort((a, b) => a.price - b.price);
+        results.sort((a, b) => getDiscountedPrice(a) - getDiscountedPrice(b));
       } else if (sortBy.value === 'priceHighToLow') {
-        results.sort((a, b) => b.price - a.price);
+        results.sort((a, b) => getDiscountedPrice(b) - getDiscountedPrice(a));
       } else if (sortBy.value === 'discountHighToLow') {
         results.sort((a, b) => (b.discount || 0) - (a.discount || 0));
       } else {
-        results.sort((a, b) => b.stock - a.stock);
+        results.sort((a, b) => b.stock - a.stock); // Default sorting tetap berdasarkan stok
       }
       sortedProducts.value = results;
     };
@@ -883,7 +918,10 @@ export default {
       (newUserId) => {
         if (newUserId !== userId.value) {
           console.log(`Route changed to ${newUserId}, updating data...`);
-          fetchData();
+          userId.value = newUserId;
+          loggedInUser.value = newUserId; // Perbarui loggedInUser
+          localStorage.setItem('loggedInUser', newUserId); // Sinkronkan ke localStorage
+          fetchData(); // Ambil data baru
         }
       }
     );
@@ -1325,27 +1363,25 @@ export default {
 
     onMounted(() => {
       console.log("Home.vue: loggedInUser =", loggedInUser.value);
+      const userIdFromRoute = route.params.userId;
+      if (userIdFromRoute) {
+        currentUserId.value = userIdFromRoute;
+        loggedInUser.value = userIdFromRoute; // Perbarui loggedInUser
+        localStorage.setItem('loggedInUser', userIdFromRoute);
+        localStorage.setItem('isFullyAuthenticated', 'false');
+        logActivity('A001', `User accessed with ID: ${userIdFromRoute}`);
+      } else {
+        currentUserId.value = localStorage.getItem('loggedInUser') || '';
+        loggedInUser.value = currentUserId.value; // Sinkronkan loggedInUser
+      }
       fetchData();
       resetInactivityTimer();
       testConnection();
-      checkPendingTransaction(); 
+      checkPendingTransaction();
       window.addEventListener("click", handleUserActivity);
       window.addEventListener("keydown", handleUserActivity);
       window.addEventListener("scroll", handleUserActivity);
       if (cartCount.value > 0) startWiggleAnimation();
-      if (window.location.pathname === '/thank-you' && referenceId.value) {
-        checkTransactionStatus(referenceId.value);
-        console.log("thankyou");
-      }
-      const userIdFromRoute = route.params.userId;
-      if (userIdFromRoute) {
-        currentUserId.value = userIdFromRoute;
-        localStorage.setItem('loggedInUser', userIdFromRoute);
-        localStorage.setItem('isFullyAuthenticated', 'false'); // Tidak sepenuhnya terautentikasi
-        logActivity('A001', `User accessed with ID: ${userIdFromRoute}`);
-      } else {
-        currentUserId.value = localStorage.getItem('loggedInUser') || '';
-      }
     });
 
     onUnmounted(() => {
@@ -1361,6 +1397,9 @@ export default {
     });
 
     return {
+      showPaymentWarning, 
+      paymentMethodSection,
+      handleCheckout, 
       userId, 
       currentUserId, 
       randomReceiptNumber,
@@ -1614,7 +1653,7 @@ export default {
   right: -25px;
 }
   
-  @keyframes rainbowSmooth {
+@keyframes rainbowSmooth {
     0% { filter: hue-rotate(0deg); }
     100% { filter: hue-rotate(360deg); }
   }
@@ -1645,6 +1684,10 @@ export default {
     75% { height: 3.55rem; }
     100% { height: 3.5rem; }
 }
+
+.text-red-500 {
+  color: #ef4444;
+  font-size: 0.9rem;
+}
+
 </style>
-
-

@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <Suspense>
-      <router-view />
+      <router-view :key="$route.params.userId" />
     </Suspense>
     <Toast
       position="top-left"

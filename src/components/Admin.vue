@@ -10,6 +10,23 @@
           <i class="pi pi-map-marker mr-1" style="font-size: smaller"></i>Lokasi
           : Universitas Brawijaya
         </p>
+        <!-- Tambahkan Device ID Management -->
+        <div class="mt-2">
+          <label for="deviceId" class="text-sm font-medium">Device ID:</label>
+          <InputText
+            id="deviceId"
+            v-model="deviceId"
+            class="ml-2 w-32"
+            placeholder="e.g., QrtVB-8888"
+            :disabled="loadingDeviceId"
+          />
+          <Button
+            label="Save"
+            class="ml-2 p-button-primary"
+            @click="saveDeviceId"
+            :loading="loadingDeviceId"
+          />
+        </div>
       </div>
 
       <div class="absolute top-3 right-8 flex gap-2">
@@ -450,6 +467,9 @@ import QRCode from "qrcode";
 export default {
   setup() {
     const router = useRouter();
+    // Tambahkan state untuk deviceId
+    const deviceId = ref("");
+    const loadingDeviceId = ref(false);
     
     
     const toast = useToast();
@@ -491,6 +511,49 @@ export default {
     const qrCode = qrcodeImage; // Pastikan qrcodeImage sudah diimpor
     const selectedReceipt = ref(null);
     const qrCodeDataUrl = ref(null); 
+
+    const saveDeviceId = async () => {
+      if (!loggedInUser.value) {
+        toast.add({
+          severity: "warn",
+          summary: "Not Logged In",
+          detail: "Please login first.",
+          life: 3000,
+        });
+        return;
+      }
+      if (!deviceId.value.trim()) {
+        toast.add({
+          severity: "error",
+          summary: "Invalid Input",
+          detail: "Device ID cannot be empty.",
+          life: 3000,
+        });
+        return;
+      }
+
+      loadingDeviceId.value = true;
+      const userRef = dbRef(db, `users/${loggedInUser.value}`);
+      try {
+        await update(userRef, { deviceId: deviceId.value });
+        toast.add({
+          severity: "success",
+          summary: "Device ID Updated",
+          detail: `Device ID set to ${deviceId.value}`,
+          life: 3000,
+        });
+      } catch (error) {
+        console.error("Error saving deviceId:", error);
+        toast.add({
+          severity: "error",
+          summary: "Error",
+          detail: "Failed to save Device ID.",
+          life: 3000,
+        });
+      } finally {
+        loadingDeviceId.value = false;
+      }
+    };
 
     const generateQRCode = async (receipt) => {
       try {
@@ -1108,6 +1171,20 @@ export default {
         console.error("No logged-in user found!");
         router.push('/login');
         return;
+      } else {
+        const userRef = dbRef(db, `users/${loggedInUser.value}`);
+        onValue(
+          userRef,
+          (snapshot) => {
+            const data = snapshot.val();
+            if (data && data.deviceId) {
+              deviceId.value = data.deviceId;
+            } else {
+              deviceId.value = ""; // Default kosong jika belum ada
+            }
+          },
+          { onlyOnce: true }
+        );
       }
       updateStatusToAdmin();
       
@@ -1150,6 +1227,9 @@ export default {
     });
 
     return {
+      deviceId,
+      loadingDeviceId,
+      saveDeviceId,
       showReceiptQRCode,
       qrCodeDataUrl,
       isQRCodeDetailDialogVisible, 
